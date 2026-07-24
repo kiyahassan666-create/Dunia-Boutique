@@ -51,7 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="fixed inset-0 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
         )}
         {/* Sidebar */}
-        <aside className={`z-20 w-56 border-r border-gold/10 bg-ivory dark:bg-[#0A0A0A] px-5 py-8 flex flex-col min-h-[calc(100vh-4rem)] flex-shrink-0 ${sidebarOpen ? "fixed left-0 top-16 bottom-0 lg:relative lg:top-auto" : "hidden lg:flex"}`}>
+        <aside className={`z-20 w-56 border-r border-gold/10 bg-ivory dark:bg-[#0A0A0A] px-5 py-8 flex flex-col min-h-[calc(100vh-4rem)] flex-shrink-0 overflow-y-auto ${sidebarOpen ? "fixed left-0 top-16 bottom-0 lg:relative lg:top-auto" : "hidden lg:flex"}`}>
           <nav className="flex flex-col gap-1">
             {NAV.map((item) => (
               <Link
