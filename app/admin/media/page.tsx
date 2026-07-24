@@ -48,8 +48,9 @@ export default function AdminMedia() {
       const url = await uploadImage(file, "site");
       await updateImage(uploadKey, url);
       await refresh();
-    } catch {
-      alert("Upload failed. Make sure Firebase Storage is enabled.");
+    } catch (err) {
+      console.error("Media upload failed:", err);
+      alert("Upload failed: " + ((err as any)?.message || "Unknown error"));
     }
     setUploading(false);
     setUploadKey(null);
@@ -94,8 +95,9 @@ export default function AdminMedia() {
       const url = await uploadImage(file, "site");
       await updateImage(key, url);
       await refresh();
-    } catch {
-      alert("Upload failed. Make sure Firebase Storage is enabled.");
+    } catch (err) {
+      console.error("Media drop upload failed:", err);
+      alert("Upload failed: " + ((err as any)?.message || "Unknown error"));
     }
   };
 

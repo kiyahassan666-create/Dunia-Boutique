@@ -24,8 +24,9 @@ export default function NewProduct() {
       const url = await uploadImage(file, "products");
       setForm({ ...form, image: url });
       setPreview(url);
-    } catch {
-      alert("Upload failed. Make sure Firebase Storage is enabled.");
+    } catch (err) {
+      console.error("Main image upload failed:", err);
+      alert("Upload failed: " + ((err as any)?.message || "Unknown error"));
     }
     setUploadingMain(false);
     e.target.value = "";
@@ -38,8 +39,9 @@ export default function NewProduct() {
     try {
       const urls = await uploadMultipleImages(Array.from(files), "products");
       setGallery(prev => [...prev, ...urls]);
-    } catch {
-      alert("Gallery upload failed.");
+    } catch (err) {
+      console.error("Gallery upload failed:", err);
+      alert("Gallery upload failed: " + ((err as any)?.message || "Unknown error"));
     }
     setUploadingGallery(false);
     e.target.value = "";

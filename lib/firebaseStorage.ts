@@ -20,46 +20,47 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]).finally(() => clearTimeout(timer!));
 }
 
-function compressImage(file: File): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    if (!file.type.startsWith("image/")) return resolve(file);
+async function compressImage(file: File): Promise<Blob> {
+  if (!file.type.startsWith("image/") || file.size < 1024 * 1024) return file;
+  try {
     const img = new Image();
     const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      let { width, height } = img;
-      if (width <= MAX_DIM && height <= MAX_DIM && file.size < 1024 * 1024) {
-        resolve(file);
-        return;
-      }
-      if (width > MAX_DIM || height > MAX_DIM) {
-        const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
-        width = Math.round(width * ratio);
-        height = Math.round(height * ratio);
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(b => {
-        if (b) resolve(b);
-        else reject(new Error("Canvas toBlob failed"));
-      }, "image/jpeg", JPEG_QUALITY);
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
-    img.src = url;
-  });
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
+      img.src = url;
+    });
+    URL.revokeObjectURL(img.src);
+    let { width, height } = img;
+    if (width <= MAX_DIM && height <= MAX_DIM) return file;
+    if (width > MAX_DIM || height > MAX_DIM) {
+      const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>(r => canvas.toBlob(b => r(b), "image/jpeg", JPEG_QUALITY));
+    if (blob) return blob;
+    return file;
+  } catch {
+    return file;
+  }
 }
 
 export async function uploadImage(file: File, path?: string): Promise<string> {
   const st = requireStorage();
-  const compressed = await compressImage(file);
+  const data = await compressImage(file);
   const ext = "jpg";
   const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const fullPath = path ? `${path}/${fileName}` : `uploads/${fileName}`;
   const storageRef = ref(st, fullPath);
-  const result: UploadResult = await withTimeout(uploadBytes(storageRef, compressed), UPLOAD_TIMEOUT);
+  const result: UploadResult = await withTimeout(uploadBytes(storageRef, data), UPLOAD_TIMEOUT);
   return getDownloadURL(result.ref);
 }
 
