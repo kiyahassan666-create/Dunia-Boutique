@@ -1,6 +1,7 @@
 import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
+import { getStorage, FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
@@ -20,6 +21,7 @@ console.log("[Firebase] Config loaded:", {
 let app: FirebaseApp | undefined;
 let auth: Auth | undefined;
 let db: Firestore | undefined;
+let storage: FirebaseStorage | undefined;
 
 const hasFirebaseConfig = !!(firebaseConfig.apiKey && firebaseConfig.projectId);
 
@@ -29,6 +31,7 @@ if (typeof window !== "undefined") {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
     console.log("[Firebase] Firebase initialized successfully");
   } else if (!hasFirebaseConfig) {
     console.warn("[Firebase] Missing credentials — Firebase Auth & Firestore will not be available. Add NEXT_PUBLIC_FIREBASE_* env vars to .env.local");
@@ -40,4 +43,4 @@ if (typeof window !== "undefined") {
   }
 }
 
-export { app, auth, db, hasFirebaseConfig };
+export { app, auth, db, storage, hasFirebaseConfig };

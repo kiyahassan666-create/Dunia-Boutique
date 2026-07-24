@@ -31,7 +31,7 @@ export default function ShoesPage() {
     <>
       <section className="relative h-[50vh] min-h-[380px] w-full">
         <Image
-          src="https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=1600&q=85&auto=format&fit=crop"
+          src={heroImage || "https://images.unsplash.com/photo-1596704017254-9b121068fb31?w=1600&q=85&auto=format&fit=crop"}
           alt="Luxury modest shoes collection"
           fill
           className="object-cover"
@@ -75,7 +75,7 @@ export default function ShoesPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative aspect-[4/5] overflow-hidden">
               <Image
-                src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=900&q=85&auto=format&fit=crop"
+                src={storyImage || "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=900&q=85&auto=format&fit=crop"}
                 alt="Dunia shoe craftsmanship"
                 fill
                 className="object-cover"

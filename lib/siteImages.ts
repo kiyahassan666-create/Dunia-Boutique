@@ -10,6 +10,13 @@ export interface SiteImage {
 
 export const IMAGE_DEFAULTS: SiteImage[] = [
   { key: "logo", label: "Brand Logo", defaultUrl: "", page: "Global", section: "Navbar / Header" },
+  { key: "cat_abayas", label: "Abayas Card", defaultUrl: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=800&q=80&auto=format&fit=crop", page: "Home", section: "Category Cards" },
+  { key: "cat_vip_abayas", label: "VIP Abayas Card", defaultUrl: "https://images.unsplash.com/photo-1623609871568-073325bf6b21?w=800&q=80&auto=format&fit=crop", page: "Home", section: "Category Cards" },
+  { key: "cat_wedding_dirah", label: "Wedding Dirah Card", defaultUrl: "https://images.unsplash.com/photo-1608236415050-8d3d65c3523e?w=800&q=80&auto=format&fit=crop", page: "Home", section: "Category Cards" },
+  { key: "cat_perfumes", label: "Perfumes Card", defaultUrl: "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=800&q=80&auto=format&fit=crop", page: "Home", section: "Category Cards" },
+  { key: "cat_bags", label: "Luxury Bags Card", defaultUrl: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80&auto=format&fit=crop", page: "Home", section: "Category Cards" },
+  { key: "cat_jewelry", label: "Jewelry Card", defaultUrl: "https://images.unsplash.com/photo-1602173574767-37ac01994b2a?w=800&q=80&auto=format&fit=crop", page: "Home", section: "Category Cards" },
+  { key: "cat_shoes", label: "Shoes Card", defaultUrl: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800&q=80&auto=format&fit=crop", page: "Home", section: "Category Cards" },
   { key: "hero_home", label: "Homepage Hero", defaultUrl: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=1600&q=85&auto=format&fit=crop", page: "Home", section: "Hero Banner" },
   { key: "hero_abayas", label: "Abayas Hero", defaultUrl: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=1600&q=85&auto=format&fit=crop", page: "Abayas", section: "Hero Banner" },
   { key: "story_abayas", label: "Abayas Brand Story", defaultUrl: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=900&q=85&auto=format&fit=crop", page: "Abayas", section: "Brand Story" },

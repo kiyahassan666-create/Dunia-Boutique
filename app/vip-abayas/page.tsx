@@ -31,7 +31,7 @@ export default function VipAbayasPage() {
     <>
       <section className="relative h-[55vh] min-h-[420px] w-full">
         <Image
-          src="https://images.unsplash.com/photo-1623609871568-073325bf6b21?w=1600&q=85&auto=format&fit=crop"
+          src={heroImage || "https://images.unsplash.com/photo-1623609871568-073325bf6b21?w=1600&q=85&auto=format&fit=crop"}
           alt="VIP abaya collection"
           fill
           className="object-cover"
@@ -90,7 +90,7 @@ export default function VipAbayasPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative aspect-[4/5] overflow-hidden">
               <Image
-                src="https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=900&q=85&auto=format&fit=crop"
+                src={storyImage || "https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=900&q=85&auto=format&fit=crop"}
                 alt="VIP abaya craftsmanship"
                 fill
                 className="object-cover"

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getDocuments, deleteDocument } from "@/lib/firebaseDb";
 import { formatKES } from "@/lib/currency";
+import { deleteImageFromStorage } from "@/lib/firebaseStorage";
 
 export default function AdminProducts() {
   const [products, setProducts] = useState<any[]>([]);
@@ -21,6 +22,17 @@ export default function AdminProducts() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product?")) return;
     try {
+      const p = products.find(pr => pr.id === id);
+      if (p?.image && p.image.startsWith("https://firebasestorage.googleapis.com")) {
+        await deleteImageFromStorage(p.image);
+      }
+      if (p?.images) {
+        for (const url of p.images) {
+          if (url.startsWith("https://firebasestorage.googleapis.com")) {
+            await deleteImageFromStorage(url);
+          }
+        }
+      }
       await deleteDocument("products", id);
       setProducts(prev => prev.filter(p => p.id !== id));
     } catch {}

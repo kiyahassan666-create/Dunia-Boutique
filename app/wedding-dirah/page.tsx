@@ -31,7 +31,7 @@ export default function WeddingDirahPage() {
     <>
       <section className="relative h-[55vh] min-h-[420px] w-full">
         <Image
-          src="https://images.unsplash.com/photo-1608236415050-8d3d65c3523e?w=1600&q=85&auto=format&fit=crop"
+          src={heroImage || "https://images.unsplash.com/photo-1608236415050-8d3d65c3523e?w=1600&q=85&auto=format&fit=crop"}
           alt="Wedding dirah collection"
           fill
           className="object-cover"
@@ -90,7 +90,7 @@ export default function WeddingDirahPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative aspect-[4/5] overflow-hidden">
               <Image
-                src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=900&q=85&auto=format&fit=crop"
+                src={storyImage || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=900&q=85&auto=format&fit=crop"}
                 alt="Wedding dirah craftsmanship"
                 fill
                 className="object-cover"

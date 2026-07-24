@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addDocument } from "@/lib/firebaseDb";
 import { convertToKES } from "@/lib/currency";
-import { uploadImage } from "@/lib/firebaseStorage";
+import { uploadImage, deleteImageFromStorage } from "@/lib/firebaseStorage";
 
 const CATEGORIES = ["Abayas", "VIP Abayas", "Wedding Dirah", "Perfumes", "Luxury Bags", "Jewelry", "Shoes"];
 
@@ -12,17 +12,43 @@ export default function NewProduct() {
   const router = useRouter();
   const [form, setForm] = useState({ name: "", category: "Abayas", price: "", image: "", badge: "", description: "", sizes: "", colors: "", material: "", stock: "10", featured: false });
   const [preview, setPreview] = useState("");
+  const [gallery, setGallery] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploading(true);
     try {
-      const dataUrl = await uploadImage(file);
-      setForm({ ...form, image: dataUrl });
-      setPreview(dataUrl);
+      const url = await uploadImage(file, "products");
+      setForm({ ...form, image: url });
+      setPreview(url);
     } catch {
-      alert("File upload unavailable in this environment. Please use an image URL instead.");
+      alert("Upload failed. Make sure Firebase Storage is enabled.");
     }
+    setUploading(false);
+    e.target.value = "";
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const url = await uploadImage(file, "products");
+        setGallery(prev => [...prev, url]);
+      }
+    } catch {
+      alert("Gallery upload failed.");
+    }
+    setUploading(false);
+    e.target.value = "";
+  };
+
+  const removeGalleryImage = async (url: string) => {
+    await deleteImageFromStorage(url);
+    setGallery(prev => prev.filter(u => u !== url));
   };
 
   const handleUrlChange = (url: string) => {
@@ -43,7 +69,8 @@ export default function NewProduct() {
       category: form.category,
       price: convertToKES(Number(form.price)),
       originalPrice: Number(form.price),
-      image: form.image || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600&q=80",
+      image: form.image || (gallery.length > 0 ? gallery[0] : "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600&q=80"),
+      images: gallery.length > 0 ? gallery : undefined,
       badge: form.badge || null,
       description: form.description,
       sizes: form.sizes ? form.sizes.split(",").map((s: string) => s.trim()) : [],
@@ -111,12 +138,34 @@ export default function NewProduct() {
             </label>
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Product Image URL</label>
-            <input type="url" value={form.image} onChange={e => handleUrlChange(e.target.value)} placeholder="https://images.unsplash.com/photo-..." className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" />
-            <p className="text-[9px] text-warm-gray/60 font-body mt-1">Paste an image URL (Unsplash, Imgur, etc.)</p>
+            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Main Image</label>
+            <div className="flex gap-3">
+              <input type="url" value={form.image} onChange={e => handleUrlChange(e.target.value)} placeholder="Paste image URL..." className="flex-1 border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" />
+              <label className="cursor-pointer border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-gold dark:hover:text-charcoal transition-colors flex items-center">
+                {uploading ? "..." : "Upload"}
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              </label>
+            </div>
             {preview && (
               <div className="mt-3 relative w-32 h-32 border border-gold/10 overflow-hidden bg-ivory dark:bg-[#0A0A0A]">
                 <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
+          <div className="sm:col-span-2">
+            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Gallery Images (optional)</label>
+            <label className="cursor-pointer inline-flex border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-gold dark:hover:text-charcoal transition-colors">
+              {uploading ? "Uploading..." : "Choose Images"}
+              <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
+            </label>
+            {gallery.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-3">
+                {gallery.map((url, i) => (
+                  <div key={i} className="relative w-24 h-24 border border-gold/10 overflow-hidden bg-ivory dark:bg-[#0A0A0A] group">
+                    <img src={url} alt={`Gallery ${i + 1}`} className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => removeGalleryImage(url)} className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-[10px] leading-none rounded-full opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>
+                  </div>
+                ))}
               </div>
             )}
           </div>

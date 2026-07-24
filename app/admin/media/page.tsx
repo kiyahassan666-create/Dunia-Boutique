@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { getAllImageEntries, updateImage, deleteSiteImage, IMAGE_DEFAULTS } from "@/lib/siteImages";
+import { getAllImageEntries, updateImage, IMAGE_DEFAULTS } from "@/lib/siteImages";
+import { uploadImage, deleteImageFromStorage } from "@/lib/firebaseStorage";
 
 interface ImageEntry {
   key: string; label: string; defaultUrl: string;
@@ -34,28 +35,19 @@ export default function AdminMedia() {
     fileRef.current?.click();
   };
 
-  const readFileAsDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      try {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.onerror = () => reject(new Error("Failed to read file"));
-        reader.readAsDataURL(file);
-      } catch {
-        reject(new Error("File upload unavailable. Use the URL button instead."));
-      }
-    });
-  };
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !uploadKey) return;
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      await updateImage(uploadKey, dataUrl);
+      const existing = entries.find(ent => ent.key === uploadKey);
+      if (existing?.currentUrl && existing.currentUrl.startsWith("https://firebasestorage.googleapis.com")) {
+        await deleteImageFromStorage(existing.currentUrl);
+      }
+      const url = await uploadImage(file, "site");
+      await updateImage(uploadKey, url);
       await refresh();
-    } catch (err: any) {
-      alert(err.message || "File upload unavailable. Use the URL button instead.");
+    } catch {
+      alert("Upload failed. Make sure Firebase Storage is enabled.");
     }
     setUploadKey(null);
     e.target.value = "";
@@ -78,6 +70,10 @@ export default function AdminMedia() {
   };
 
   const handleDelete = async (key: string) => {
+    const existing = entries.find(ent => ent.key === key);
+    if (existing?.currentUrl && existing.currentUrl.startsWith("https://firebasestorage.googleapis.com")) {
+      await deleteImageFromStorage(existing.currentUrl);
+    }
     await updateImage(key, "");
     await refresh();
   };
@@ -88,11 +84,15 @@ export default function AdminMedia() {
     const file = e.dataTransfer.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
     try {
-      const dataUrl = await readFileAsDataURL(file);
-      await updateImage(key, dataUrl);
+      const existing = entries.find(ent => ent.key === key);
+      if (existing?.currentUrl && existing.currentUrl.startsWith("https://firebasestorage.googleapis.com")) {
+        await deleteImageFromStorage(existing.currentUrl);
+      }
+      const url = await uploadImage(file, "site");
+      await updateImage(key, url);
       await refresh();
-    } catch (err: any) {
-      alert(err.message || "File upload unavailable. Use the URL button instead.");
+    } catch {
+      alert("Upload failed. Make sure Firebase Storage is enabled.");
     }
   };
 
