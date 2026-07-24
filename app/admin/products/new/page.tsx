@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addDocument } from "@/lib/firebaseDb";
 import { convertToKES } from "@/lib/currency";
-import { uploadImage, deleteImageFromStorage } from "@/lib/firebaseStorage";
+import { uploadImage, uploadMultipleImages, deleteImageFromStorage } from "@/lib/firebaseStorage";
 
 const CATEGORIES = ["Abayas", "VIP Abayas", "Wedding Dirah", "Perfumes", "Luxury Bags", "Jewelry", "Shoes"];
 
@@ -35,10 +35,8 @@ export default function NewProduct() {
     if (!files) return;
     setUploading(true);
     try {
-      for (const file of Array.from(files)) {
-        const url = await uploadImage(file, "products");
-        setGallery(prev => [...prev, url]);
-      }
+      const urls = await uploadMultipleImages(Array.from(files), "products");
+      setGallery(prev => [...prev, ...urls]);
     } catch {
       alert("Gallery upload failed.");
     }
@@ -84,26 +82,26 @@ export default function NewProduct() {
   };
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="font-serif text-2xl font-medium text-charcoal dark:text-[#E8E0D8] mb-8">New Product</h1>
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div>
+      <h1 className="font-serif text-2xl font-medium text-charcoal dark:text-[#E8E0D8] mb-6 sm:mb-8">New Product</h1>
+      <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <div className="sm:col-span-2">
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Product Name</label>
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Product Name</label>
             <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" required />
           </div>
           <div>
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Category</label>
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Category</label>
             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold">
               {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Price (USD)</label>
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Price (USD)</label>
             <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" required min="0" placeholder="Will be converted to KES" />
           </div>
           <div>
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Badge</label>
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Badge</label>
             <select value={form.badge} onChange={e => setForm({ ...form, badge: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold">
               <option value="">None</option>
               <option value="New">New</option>
@@ -112,36 +110,36 @@ export default function NewProduct() {
             </select>
           </div>
           <div>
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Stock</label>
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Stock</label>
             <input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" min="0" />
           </div>
           <div>
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Material</label>
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Material</label>
             <input type="text" value={form.material} onChange={e => setForm({ ...form, material: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Description</label>
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Description</label>
             <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold resize-none" />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Sizes (comma separated, e.g. XS,S,M,L,XL)</label>
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Sizes (comma separated, e.g. XS,S,M,L,XL)</label>
             <input type="text" value={form.sizes} onChange={e => setForm({ ...form, sizes: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Colors (name|hex, comma separated, e.g. Black|#1A1A1A, Ivory|#FFFCF8)</label>
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Colors (name|hex, comma separated, e.g. Black|#1A1A1A, Ivory|#FFFCF8)</label>
             <input type="text" value={form.colors} onChange={e => setForm({ ...form, colors: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" />
           </div>
           <div className="sm:col-span-2">
-            <label className="flex items-center gap-3">
-              <input type="checkbox" checked={form.featured} onChange={e => setForm({ ...form, featured: e.target.checked })} className="accent-charcoal dark:accent-gold" />
-              <span className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body">Featured product (shows on homepage)</span>
+            <label className="flex items-center gap-3 cursor-pointer py-1">
+              <input type="checkbox" checked={form.featured} onChange={e => setForm({ ...form, featured: e.target.checked })} className="accent-charcoal dark:accent-gold w-4 h-4" />
+              <span className="text-xs tracking-[0.2em] uppercase text-warm-gray font-body">Featured product (shows on homepage)</span>
             </label>
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Main Image</label>
-            <div className="flex gap-3">
-              <input type="url" value={form.image} onChange={e => handleUrlChange(e.target.value)} placeholder="Paste image URL..." className="flex-1 border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" />
-              <label className="cursor-pointer border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-gold dark:hover:text-charcoal transition-colors flex items-center">
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Main Image</label>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input type="url" value={form.image} onChange={e => handleUrlChange(e.target.value)} placeholder="Paste image URL..." className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" />
+              <label className="cursor-pointer border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-6 py-3 text-xs tracking-[0.2em] uppercase text-warm-gray font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-gold dark:hover:text-charcoal transition-colors flex items-center justify-center min-h-[44px]">
                 {uploading ? "..." : "Upload"}
                 <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
               </label>
@@ -153,8 +151,8 @@ export default function NewProduct() {
             )}
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Gallery Images (optional)</label>
-            <label className="cursor-pointer inline-flex border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-gold dark:hover:text-charcoal transition-colors">
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Gallery Images (optional)</label>
+            <label className="cursor-pointer inline-flex border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-6 py-3 text-xs tracking-[0.2em] uppercase text-warm-gray font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-gold dark:hover:text-charcoal transition-colors min-h-[44px] items-center">
               {uploading ? "Uploading..." : "Choose Images"}
               <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
             </label>
@@ -170,7 +168,7 @@ export default function NewProduct() {
             )}
           </div>
         </div>
-        <button type="submit" className="w-full bg-charcoal dark:bg-gold py-3.5 text-[10px] tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body transition-all hover:bg-gold hover:text-charcoal dark:hover:bg-ivory">Add Product</button>
+        <button type="submit" className="w-full bg-charcoal dark:bg-gold py-3.5 text-xs tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body transition-all hover:bg-gold hover:text-charcoal dark:hover:bg-ivory min-h-[48px]">Add Product</button>
       </form>
     </div>
   );

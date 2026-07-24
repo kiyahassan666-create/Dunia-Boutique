@@ -89,17 +89,17 @@ export default function AdminOrders() {
         </select>
       </div>
 
-      <div className="border border-gold/10">
-        <table className="w-full text-left">
+      <div className="border border-gold/10 overflow-x-auto -mx-4 sm:mx-0">
+        <table className="w-full text-left min-w-[550px]">
           <thead>
             <tr className="border-b border-gold/10">
-              <th className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body px-4 py-3">Order</th>
-              <th className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body px-4 py-3">Customer</th>
-              <th className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body px-4 py-3">Items</th>
-              <th className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body px-4 py-3">Total</th>
-              <th className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body px-4 py-3">Status</th>
-              <th className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body px-4 py-3">Date</th>
-              <th className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body px-4 py-3">Actions</th>
+              <th className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-warm-gray font-body px-3 sm:px-4 py-3">Order</th>
+              <th className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-warm-gray font-body px-3 sm:px-4 py-3">Customer</th>
+              <th className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-warm-gray font-body px-3 sm:px-4 py-3 hidden sm:table-cell">Items</th>
+              <th className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-warm-gray font-body px-3 sm:px-4 py-3">Total</th>
+              <th className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-warm-gray font-body px-3 sm:px-4 py-3">Status</th>
+              <th className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-warm-gray font-body px-3 sm:px-4 py-3 hidden sm:table-cell">Date</th>
+              <th className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-warm-gray font-body px-3 sm:px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -108,20 +108,20 @@ export default function AdminOrders() {
             )}
             {filtered.map(o => (
               <tr key={o.id} className="border-b border-gold/5 hover:bg-gold/5 transition-colors">
-                <td className="px-4 py-3 font-serif text-sm text-charcoal dark:text-[#E8E0D8]">{o.id}</td>
-                <td className="px-4 py-3 text-xs text-warm-gray font-body">{o.customer?.name || o.userEmail || "Guest"}</td>
-                <td className="px-4 py-3 font-serif text-sm text-charcoal dark:text-[#E8E0D8]">{o.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0}</td>
-                <td className="px-4 py-3 font-serif text-sm text-gold-dark">{formatKES(o.total)}</td>
-                <td className="px-4 py-3">
-                  <select value={o.status} onChange={e => updateStatus(o.id, e.target.value)} className={`text-[10px] tracking-[0.15em] uppercase font-body border border-gold/10 px-2 py-1 rounded-none outline-none bg-ivory dark:bg-[#0A0A0A] ${o.status === "Delivered" ? "text-green-600" : o.status === "Cancelled" ? "text-red-400" : o.status === "Pending Payment" ? "text-amber-500" : "text-warm-gray"}`}>
+                <td className="px-3 sm:px-4 py-3 font-serif text-sm text-charcoal dark:text-[#E8E0D8] max-w-[80px] sm:max-w-none truncate">{o.id}</td>
+                <td className="px-3 sm:px-4 py-3 text-xs text-warm-gray font-body max-w-[100px] sm:max-w-none truncate">{o.customer?.name || o.userEmail || "Guest"}</td>
+                <td className="px-3 sm:px-4 py-3 font-serif text-sm text-charcoal dark:text-[#E8E0D8] hidden sm:table-cell">{o.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0}</td>
+                <td className="px-3 sm:px-4 py-3 font-serif text-sm text-gold-dark whitespace-nowrap">{formatKES(o.total)}</td>
+                <td className="px-3 sm:px-4 py-3">
+                  <select value={o.status} onChange={e => updateStatus(o.id, e.target.value)} className={`text-[10px] sm:text-[11px] tracking-[0.15em] uppercase font-body border border-gold/10 px-2 py-1.5 min-h-[32px] outline-none bg-ivory dark:bg-[#0A0A0A] ${o.status === "Delivered" ? "text-green-600" : o.status === "Cancelled" ? "text-red-400" : o.status === "Pending Payment" ? "text-amber-500" : "text-warm-gray"}`}>
                     {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </td>
-                <td className="px-4 py-3 text-[10px] text-warm-gray font-body">{o.date}</td>
-                <td className="px-4 py-3">
-                  <div className="flex gap-2">
-                    <button onClick={() => setSelectedOrder(o)} className="text-[9px] tracking-[0.15em] uppercase text-gold-dark font-body hover:text-gold transition-colors">View</button>
-                    <button onClick={() => deleteOrder(o.id)} className="text-[9px] tracking-[0.15em] uppercase text-red-400 font-body hover:text-red-500 transition-colors">Delete</button>
+                <td className="px-3 sm:px-4 py-3 text-[10px] sm:text-[11px] text-warm-gray font-body hidden sm:table-cell whitespace-nowrap">{o.date}</td>
+                <td className="px-3 sm:px-4 py-3">
+                  <div className="flex gap-3 items-center min-h-[36px]">
+                    <button onClick={() => setSelectedOrder(o)} className="text-[11px] tracking-[0.15em] uppercase text-gold-dark font-body hover:text-gold transition-colors py-1">View</button>
+                    <button onClick={() => deleteOrder(o.id)} className="text-[11px] tracking-[0.15em] uppercase text-red-400 font-body hover:text-red-500 transition-colors py-1">Delete</button>
                   </div>
                 </td>
               </tr>
