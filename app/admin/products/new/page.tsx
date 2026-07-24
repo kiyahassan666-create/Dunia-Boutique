@@ -13,12 +13,13 @@ export default function NewProduct() {
   const [form, setForm] = useState({ name: "", category: "Abayas", price: "", image: "", badge: "", description: "", sizes: "", colors: "", material: "", stock: "10", featured: false });
   const [preview, setPreview] = useState("");
   const [gallery, setGallery] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingMain, setUploadingMain] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
+    setUploadingMain(true);
     try {
       const url = await uploadImage(file, "products");
       setForm({ ...form, image: url });
@@ -26,21 +27,21 @@ export default function NewProduct() {
     } catch {
       alert("Upload failed. Make sure Firebase Storage is enabled.");
     }
-    setUploading(false);
+    setUploadingMain(false);
     e.target.value = "";
   };
 
   const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    setUploading(true);
+    setUploadingGallery(true);
     try {
       const urls = await uploadMultipleImages(Array.from(files), "products");
       setGallery(prev => [...prev, ...urls]);
     } catch {
       alert("Gallery upload failed.");
     }
-    setUploading(false);
+    setUploadingGallery(false);
     e.target.value = "";
   };
 
@@ -140,8 +141,8 @@ export default function NewProduct() {
             <div className="flex flex-col sm:flex-row gap-3">
               <input type="url" value={form.image} onChange={e => handleUrlChange(e.target.value)} placeholder="Paste image URL..." className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" />
               <label className="cursor-pointer border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-6 py-3 text-xs tracking-[0.2em] uppercase text-warm-gray font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-gold dark:hover:text-charcoal transition-colors flex items-center justify-center min-h-[44px]">
-                {uploading ? "..." : "Upload"}
-                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                {uploadingMain ? "..." : "Upload"}
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={uploadingMain || uploadingGallery} />
               </label>
             </div>
             {preview && (
@@ -153,8 +154,8 @@ export default function NewProduct() {
           <div className="sm:col-span-2">
             <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Gallery Images (optional)</label>
             <label className="cursor-pointer inline-flex border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-6 py-3 text-xs tracking-[0.2em] uppercase text-warm-gray font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-gold dark:hover:text-charcoal transition-colors min-h-[44px] items-center">
-              {uploading ? "Uploading..." : "Choose Images"}
-              <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
+              {uploadingGallery ? "Uploading..." : "Choose Images"}
+              <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" disabled={uploadingMain || uploadingGallery} />
             </label>
             {gallery.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-3">

@@ -40,6 +40,7 @@ if (typeof window !== "undefined") {
     app = getApps()[0];
     auth = getAuth(app);
     db = getFirestore(app);
+    storage = getStorage(app);
   }
 }
 

@@ -17,6 +17,7 @@ export default function AdminMedia() {
   const [dragKey, setDragKey] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadKey, setUploadKey] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -38,6 +39,7 @@ export default function AdminMedia() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !uploadKey) return;
+    setUploading(true);
     try {
       const existing = entries.find(ent => ent.key === uploadKey);
       if (existing?.currentUrl && existing.currentUrl.startsWith("https://firebasestorage.googleapis.com")) {
@@ -49,6 +51,7 @@ export default function AdminMedia() {
     } catch {
       alert("Upload failed. Make sure Firebase Storage is enabled.");
     }
+    setUploading(false);
     setUploadKey(null);
     e.target.value = "";
   };
@@ -159,10 +162,10 @@ export default function AdminMedia() {
               </div>
             ) : (
               <div className="mt-3 flex gap-2">
-                <button onClick={() => handleFilePick(entry.key)} className="flex-1 border border-gold/20 py-2 text-[9px] tracking-[0.2em] uppercase text-charcoal dark:text-[#E8E0D8] font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-ivory dark:hover:text-charcoal transition-colors">Upload</button>
-                <button onClick={() => { setEditing(entry.key); setUrlInput(entry.currentUrl || ""); }} className="px-3 py-2 text-[9px] tracking-[0.15em] uppercase text-gold-dark font-body hover:text-gold transition-colors">URL</button>
+                <button onClick={() => handleFilePick(entry.key)} disabled={uploading} className="flex-1 border border-gold/20 py-2 text-[9px] tracking-[0.2em] uppercase text-charcoal dark:text-[#E8E0D8] font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-ivory dark:hover:text-charcoal transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{uploading ? "Uploading..." : "Upload"}</button>
+                <button onClick={() => { setEditing(entry.key); setUrlInput(entry.currentUrl || ""); }} disabled={uploading} className="px-3 py-2 text-[9px] tracking-[0.15em] uppercase text-gold-dark font-body hover:text-gold transition-colors disabled:opacity-40">URL</button>
                 {entry.currentUrl && (
-                  <button onClick={() => handleReset(entry.key)} className="px-3 py-2 text-[9px] tracking-[0.15em] uppercase text-amber-500 font-body hover:text-amber-600 transition-colors">Reset</button>
+                  <button onClick={() => handleReset(entry.key)} disabled={uploading} className="px-3 py-2 text-[9px] tracking-[0.15em] uppercase text-amber-500 font-body hover:text-amber-600 transition-colors disabled:opacity-40">Reset</button>
                 )}
               </div>
             )}
