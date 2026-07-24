@@ -27,12 +27,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, [pathname, router]);
 
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
   if (pathname === "/admin/login") return <>{children}</>;
   if (!authed) return null;
 
   return (
     <div className="min-h-screen bg-[#FAF5F0] dark:bg-[#0F0F0F]">
-      <header className="border-b border-gold/10 bg-ivory dark:bg-[#0A0A0A] h-16 flex items-center px-6 lg:px-12">
+      <header className="relative z-30 border-b border-gold/10 bg-ivory dark:bg-[#0A0A0A] h-16 flex items-center px-6 lg:px-12">
         <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-warm-gray hover:text-charcoal dark:hover:text-[#E8E0D8] transition-colors mr-4 text-lg leading-none" aria-label="Toggle sidebar">
           {sidebarOpen ? "✕" : "☰"}
         </button>
@@ -41,32 +45,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span className="hidden sm:inline text-[9px] tracking-[0.3em] uppercase text-warm-gray font-body ml-2">Admin</span>
         </Link>
       </header>
-      <div className="flex relative">
+      <div className="flex">
+        {/* Mobile sidebar overlay */}
         {sidebarOpen && (
-          <>
-            <aside className="fixed inset-y-0 left-0 z-50 w-56 border-r border-gold/10 bg-ivory dark:bg-[#0A0A0A] px-5 py-8 flex flex-col pt-20 min-h-screen lg:pt-8 lg:relative lg:inset-auto lg:z-auto lg:min-h-[calc(100vh-4rem)] lg:flex-shrink-0 lg:block">
-              <nav className="flex flex-col gap-1">
-                {NAV.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 text-xs tracking-wider uppercase font-body transition-colors ${
-                      pathname === item.href
-                        ? "bg-charcoal/5 dark:bg-ivory/5 text-charcoal dark:text-[#E8E0D8]"
-                        : "text-warm-gray dark:text-[#A09890] hover:text-charcoal dark:hover:text-[#E8E0D8]"
-                    }`}
-                  >
-                    <span className="text-gold text-sm">{item.icon}</span>
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-            </aside>
-            <div className="fixed inset-0 bg-black/20 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-          </>
+          <div className="fixed inset-0 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
         )}
-        <main className="flex-1 overflow-auto">
+        {/* Sidebar */}
+        <aside className={`z-20 w-56 border-r border-gold/10 bg-ivory dark:bg-[#0A0A0A] px-5 py-8 flex flex-col min-h-[calc(100vh-4rem)] flex-shrink-0 ${sidebarOpen ? "fixed left-0 top-16 bottom-0 lg:relative lg:top-auto" : "hidden lg:flex"}`}>
+          <nav className="flex flex-col gap-1">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center gap-3 px-3 py-2.5 text-xs tracking-wider uppercase font-body transition-colors ${
+                  pathname === item.href
+                    ? "bg-charcoal/5 dark:bg-ivory/5 text-charcoal dark:text-[#E8E0D8]"
+                    : "text-warm-gray dark:text-[#A09890] hover:text-charcoal dark:hover:text-[#E8E0D8]"
+                }`}
+              >
+                <span className="text-gold text-sm">{item.icon}</span>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </aside>
+        {/* Mobile backdrop */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 bg-black/20 z-10 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        )}
+        <main className="flex-1 overflow-auto min-w-0">
           <div className="max-w-6xl mx-auto px-4 sm:px-8 py-10">{children}</div>
         </main>
       </div>
