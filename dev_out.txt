@@ -1,0 +1,7 @@
+   ▲ Next.js 15.5.21
+   - Local:        http://localhost:3999
+   - Network:      http://192.168.56.1:3999
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 8.7s

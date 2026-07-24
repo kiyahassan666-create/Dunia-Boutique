@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow all reads (guests browse products, categories, etc.)
+    // Allow all writes (admin uses hardcoded session auth, not Firebase Auth)
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

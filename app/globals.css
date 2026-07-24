@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-cream: #FAF5F0;
+  --color-cream-dark: #F5EDE3;
+  --color-gold: #C8A46B;
+  --color-gold-light: #E8D5B5;
+  --color-gold-dark: #8B7355;
+  --color-espresso: #2C1810;
+  --color-charcoal: #1A1A1A;
+  --color-warm-gray: #8C8178;
+  --color-ivory: #FFFCF8;
+  --font-serif: Georgia, "Times New Roman", serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  @apply bg-cream text-charcoal font-body antialiased;
+}
+.dark body, body.dark {
+  @apply bg-[#0F0F0F] text-[#E8E0D8];
+}
+
+::selection { background: var(--color-gold); color: #FFFCF8; }
+.dark ::selection { background: var(--color-gold); color: #0F0F0F; }
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
