@@ -4,15 +4,20 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SafeImage } from "@/components/SafeImage";
 import { getImage } from "@/lib/siteImages";
+import { preloadImage, prefetchFirebaseStorage } from "@/lib/imagePreload";
 
 export function Hero() {
   const [heroImage, setHeroImage] = useState("");
 
   useEffect(() => {
+    prefetchFirebaseStorage();
     (async () => {
       try {
         const img = await getImage("hero_home");
-        if (img) setHeroImage(img);
+        if (img) {
+          preloadImage(img);
+          setHeroImage(img);
+        }
       } catch {}
     })();
   }, []);

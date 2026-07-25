@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SafeImage } from "@/components/SafeImage";
 import { getDocuments, getDocument } from "@/lib/firebaseDb";
 import { getSiteImages } from "@/lib/siteImages";
+import { preloadImages } from "@/lib/imagePreload";
 
 interface CatData {
   id: string; name: string; slug: string; image: string;
@@ -23,6 +24,7 @@ const CAT_KEYS: Record<string, { key: string; slug: string }> = {
 export function CategoryGrid() {
   const [cats, setCats] = useState<CatData[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [imageLoaded, setImageLoaded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     (async () => {
@@ -38,12 +40,17 @@ export function CategoryGrid() {
         }
         setCounts(map);
         const loaded: CatData[] = [];
+        const imagesToPreload: string[] = [];
         for (const [catName, info] of Object.entries(CAT_KEYS)) {
           const doc = await getDocument<{ name?: string; slug?: string }>("categories", info.key.replace("cat_", ""));
           const name = doc?.name || catName;
           const slug = doc?.slug || info.slug;
-          loaded.push({ id: slug, name, slug, image: siteImages[info.key] || "" });
+          const img = siteImages[info.key] || "";
+          loaded.push({ id: slug, name, slug, image: img });
+          if (img) imagesToPreload.push(img);
         }
+        // Preload first 4 images for faster display
+        preloadImages(imagesToPreload.slice(0, 4));
         setCats(loaded);
       } catch {}
     })();
@@ -75,8 +82,10 @@ export function CategoryGrid() {
                   src={cat.image}
                   alt={cat.name}
                   fill
-                  className="object-cover transition-all duration-700 group-hover:scale-105"
+                  priority={cats.indexOf(cat) < 4}
+                  className={`object-cover transition-all duration-700 group-hover:scale-105 ${imageLoaded[cat.id] ? 'opacity-100' : 'opacity-0'}`}
                   sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 14vw"
+                  onLoad={() => setImageLoaded(prev => ({ ...prev, [cat.id]: true }))}
                 />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />

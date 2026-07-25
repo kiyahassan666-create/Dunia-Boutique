@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const [submitted, setSubmitted] = useState(false);
   const [orderId, setOrderId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("mpesa");
+  const [mpesaCode, setMpesaCode] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +42,10 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.uid) return;
+    if (!user?.uid || !mpesaCode.trim()) {
+      alert("Please enter your M-Pesa confirmation code");
+      return;
+    }
     const id = `ORD-${Date.now()}`;
     const order = {
       id,
@@ -61,6 +65,9 @@ export default function CheckoutPage() {
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
       status: "Pending Payment",
       paymentMethod,
+      mpesaCode: mpesaCode.toUpperCase(),
+      paymentVerified: false,
+      verifiedAt: null,
       userEmail: user?.email || "",
       userId: user.uid,
     };
@@ -83,8 +90,15 @@ export default function CheckoutPage() {
           <p className="font-serif text-base text-warm-gray dark:text-[#A09890] mt-3 italic leading-relaxed">
             Thank you for your order. Your order <strong>{orderId}</strong> has been placed with status <strong>Pending Payment</strong>.
           </p>
-          <p className="text-xs text-warm-gray font-body mt-4">You will be notified once payment is confirmed.</p>
-          <Link href="/" className="inline-block mt-8 bg-charcoal dark:bg-gold px-8 py-4 text-[10px] tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body hover:bg-gold hover:text-charcoal dark:hover:bg-ivory transition-all">Continue Shopping</Link>
+          <p className="text-xs text-warm-gray font-body mt-4">Admin will verify your M-Pesa code shortly. You can track your order status below.</p>
+          <div className="flex flex-col gap-3 mt-8">
+            <Link href={`/order-status/${orderId}`} className="inline-block bg-gold dark:bg-gold px-8 py-4 text-[10px] tracking-[0.25em] uppercase text-charcoal dark:text-charcoal font-body hover:bg-gold/90 transition-all">
+              Track Order Status
+            </Link>
+            <Link href="/" className="inline-block border border-charcoal dark:border-[#E8E0D8] px-8 py-4 text-[10px] tracking-[0.25em] uppercase text-charcoal dark:text-[#E8E0D8] font-body hover:bg-charcoal/5 transition-all">
+              Continue Shopping
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -147,6 +161,19 @@ export default function CheckoutPage() {
                   <p className="text-[9px] tracking-[0.15em] uppercase text-warm-gray font-body mt-0.5">Pay via M-Pesa mobile money</p>
                 </div>
               </label>
+              
+              <div className="mt-6 pt-6 border-t border-gold/10">
+                <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-3">M-Pesa Confirmation Code</label>
+                <input 
+                  type="text" 
+                  value={mpesaCode} 
+                  onChange={e => setMpesaCode(e.target.value.toUpperCase())} 
+                  placeholder="Enter code (e.g., ABC123DEF456)"
+                  className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold uppercase tracking-widest font-mono" 
+                  required 
+                />
+                <p className="text-[9px] text-warm-gray font-body mt-2">You will receive this code in your M-Pesa message. Admin will verify it before processing.</p>
+              </div>
             </div>
 
             <button type="submit" className="w-full bg-charcoal dark:bg-gold py-4 text-[10px] tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body transition-all hover:bg-gold hover:text-charcoal dark:hover:bg-ivory">Place Order — {formatKES(total)}</button>

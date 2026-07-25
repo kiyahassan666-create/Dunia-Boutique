@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getOrdersFromFirestore, updateOrderInFirestore } from "@/lib/firebaseSync";
 import { formatKES } from "@/lib/currency";
 
-const STATUSES = ["Pending Payment", "Processing", "Delivered", "Cancelled"];
+const STATUSES = ["Pending Payment", "Processing", "In Transit", "Delivered", "Cancelled"];
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -41,6 +41,20 @@ export default function AdminOrders() {
     if (selectedOrder?.id === orderId) setSelectedOrder({ ...selectedOrder, status });
   };
 
+  const verifyPayment = async (orderId: string) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, paymentVerified: true, status: "Processing", verifiedAt: new Date().toISOString() } : o));
+    try {
+      await updateOrderInFirestore(orderId, { 
+        paymentVerified: true, 
+        status: "Processing",
+        verifiedAt: new Date().toISOString()
+      });
+    } catch {}
+    if (selectedOrder?.id === orderId) {
+      setSelectedOrder({ ...selectedOrder, paymentVerified: true, status: "Processing", verifiedAt: new Date().toISOString() });
+    }
+  };
+
   const deleteOrder = async (orderId: string) => {
     if (!confirm("Delete this order?")) return;
     setOrders(prev => prev.filter(o => o.id !== orderId));
@@ -48,11 +62,11 @@ export default function AdminOrders() {
   };
 
   const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  const ts = orders.filter(o => o.date === today);
-  const ms = orders.filter(o => o.date?.startsWith(today.slice(0, 7)));
+  const ts = orders.filter(o => o.date === today && o.paymentVerified);
+  const ms = orders.filter(o => o.date?.startsWith(today.slice(0, 7)) && o.paymentVerified);
   const todayTotal = ts.reduce((s: number, o: any) => s + (o.total || 0), 0);
   const monthTotal = ms.reduce((s: number, o: any) => s + (o.total || 0), 0);
-  const allTimeTotal = orders.reduce((s: number, o: any) => s + (o.total || 0), 0);
+  const allTimeTotal = orders.filter((o: any) => o.paymentVerified).reduce((s: number, o: any) => s + (o.total || 0), 0);
 
   if (loading) return <p className="text-warm-gray font-body text-sm">Loading...</p>;
 
@@ -157,6 +171,14 @@ export default function AdminOrders() {
                 <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Date:</span> {selectedOrder.date}</p>
                 <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Status:</span> {selectedOrder.status}</p>
                 <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Payment:</span> {selectedOrder.paymentMethod || "—"}</p>
+                {selectedOrder.mpesaCode && (
+                  <div className="pt-2 border-t border-gold/10">
+                    <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">M-Pesa Code:</span> <span className="font-mono text-sm text-gold-dark font-bold">{selectedOrder.mpesaCode}</span></p>
+                    <p className={`text-xs font-body mt-1 ${selectedOrder.paymentVerified ? "text-green-600" : "text-amber-500"}`}>
+                      {selectedOrder.paymentVerified ? "✓ Payment Verified" : "⚠ Pending Verification"}
+                    </p>
+                  </div>
+                )}
                 <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Subtotal:</span> <span className="text-gold-dark font-serif">{formatKES(selectedOrder.subtotal || selectedOrder.total)}</span></p>
                 {selectedOrder.shipping && <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Shipping:</span> <span className="text-gold-dark font-serif">{formatKES(selectedOrder.shipping)}</span></p>}
                 <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Total:</span> <span className="text-gold-dark font-serif">{formatKES(selectedOrder.total)}</span></p>
@@ -178,12 +200,19 @@ export default function AdminOrders() {
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-gold/10 flex gap-3">
-              <select value={selectedOrder.status} onChange={e => { updateStatus(selectedOrder.id, e.target.value); setSelectedOrder({ ...selectedOrder, status: e.target.value }); }} className="flex-1 border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-2.5 text-xs text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold font-body">
-                {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <button onClick={() => deleteOrder(selectedOrder.id)} className="border border-red-300 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-red-400 font-body hover:bg-red-50 transition-colors">Delete</button>
-              <button onClick={() => setSelectedOrder(null)} className="border border-gold/20 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-warm-gray font-body hover:text-charcoal transition-colors">Close</button>
+            <div className="mt-6 pt-4 border-t border-gold/10 space-y-3">
+              {selectedOrder.mpesaCode && !selectedOrder.paymentVerified && (
+                <button onClick={() => verifyPayment(selectedOrder.id)} className="w-full bg-green-600 hover:bg-green-700 px-4 py-3 text-[10px] tracking-[0.15em] uppercase text-ivory font-body transition-colors">
+                  ✓ Verify Payment & Process Order
+                </button>
+              )}
+              <div className="flex gap-3">
+                <select value={selectedOrder.status} onChange={e => { updateStatus(selectedOrder.id, e.target.value); setSelectedOrder({ ...selectedOrder, status: e.target.value }); }} className="flex-1 border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-2.5 text-xs text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold font-body">
+                  {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <button onClick={() => deleteOrder(selectedOrder.id)} className="border border-red-300 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-red-400 font-body hover:bg-red-50 transition-colors">Delete</button>
+                <button onClick={() => setSelectedOrder(null)} className="border border-gold/20 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-warm-gray font-body hover:text-charcoal transition-colors">Close</button>
+              </div>
             </div>
           </div>
         </div>

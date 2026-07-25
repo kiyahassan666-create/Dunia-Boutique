@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   title: "Dunia Boutique — Luxury Modest Fashion",
   description:
     "Discover curated luxury for the modern Muslim woman. Abayas, VIP Abayas, Wedding Dirah, Perfumes, Luxury Bags, Jewelry, and Shoes.",
+  other: {
+    preconnect: "https://firebasestorage.googleapis.com",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
