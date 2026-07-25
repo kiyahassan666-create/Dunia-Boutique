@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addDocument } from "@/lib/firebaseDb";
-import { convertToKES } from "@/lib/currency";
 import { uploadImage, uploadMultipleImages, deleteImageFromStorage } from "@/lib/firebaseStorage";
 
 const CATEGORIES = ["Abayas", "VIP Abayas", "Wedding Dirah", "Perfumes", "Luxury Bags", "Jewelry", "Shoes"];
@@ -15,6 +14,7 @@ export default function NewProduct() {
   const [gallery, setGallery] = useState<string[]>([]);
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,29 +59,37 @@ export default function NewProduct() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const id = `p${Date.now()}`;
-    const colors = form.colors ? form.colors.split(",").map((c: string) => {
-      const [name, hex] = c.trim().split("|");
-      return { name: name?.trim() || c.trim(), hex: hex?.trim() || "#000000" };
-    }) : [];
-    await addDocument("products", {
-      id,
-      name: form.name,
-      category: form.category,
-      price: convertToKES(Number(form.price)),
-      originalPrice: Number(form.price),
-      image: form.image || (gallery.length > 0 ? gallery[0] : ""),
-      images: gallery.length > 0 ? gallery : undefined,
-      badge: form.badge || null,
-      description: form.description,
-      sizes: form.sizes ? form.sizes.split(",").map((s: string) => s.trim()) : [],
-      colors,
-      material: form.material,
-      inStock: true,
-      stock: Number(form.stock),
-      featured: form.featured,
-    }, id);
-    router.push("/admin/products");
+    if (!form.price) { alert("Enter a price"); return; }
+    setSaving(true);
+    try {
+      const id = `p${Date.now()}`;
+      const colors = form.colors ? form.colors.split(",").map((c: string) => {
+        const [name, hex] = c.trim().split("|");
+        return { name: name?.trim() || c.trim(), hex: hex?.trim() || "#000000" };
+      }) : [];
+      await addDocument("products", {
+        id,
+        name: form.name,
+        category: form.category,
+        price: Number(form.price),
+        originalPrice: Number(form.price),
+        image: form.image || (gallery.length > 0 ? gallery[0] : ""),
+        images: gallery.length > 0 ? gallery : undefined,
+        badge: form.badge || null,
+        description: form.description,
+        sizes: form.sizes ? form.sizes.split(",").map((s: string) => s.trim()) : [],
+        colors,
+        material: form.material,
+        inStock: true,
+        stock: Number(form.stock),
+        featured: form.featured,
+      }, id);
+      router.push("/admin/products");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save product: " + ((err as any)?.message || "Unknown error"));
+    }
+    setSaving(false);
   };
 
   return (
@@ -100,8 +108,8 @@ export default function NewProduct() {
             </select>
           </div>
           <div>
-            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Price (USD)</label>
-            <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" required min="0" placeholder="Will be converted to KES" />
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Price (KES)</label>
+            <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" required min="0" placeholder="Enter price in KSh" />
           </div>
           <div>
             <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Badge</label>
@@ -171,7 +179,7 @@ export default function NewProduct() {
             )}
           </div>
         </div>
-        <button type="submit" className="w-full bg-charcoal dark:bg-gold py-3.5 text-xs tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body transition-all hover:bg-gold hover:text-charcoal dark:hover:bg-ivory min-h-[48px]">Add Product</button>
+        <button type="submit" disabled={saving || uploadingMain || uploadingGallery} className="w-full bg-charcoal dark:bg-gold py-3.5 text-xs tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body transition-all hover:bg-gold hover:text-charcoal dark:hover:bg-ivory min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed">{saving ? "Saving..." : "Add Product"}</button>
       </form>
     </div>
   );

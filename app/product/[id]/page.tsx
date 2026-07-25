@@ -7,7 +7,7 @@ import { SafeImage } from "@/components/SafeImage";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCartItems, saveCartItems, getWishlistItems, saveWishlistItems } from "@/lib/firebaseSync";
 import { getDocument } from "@/lib/firebaseDb";
-import { formatKES, convertToKES } from "@/lib/currency";
+import { formatKES } from "@/lib/currency";
 
 export default function ProductPage() {
   const params = useParams<{ id: string }>();

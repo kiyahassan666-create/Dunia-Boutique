@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getDocument, updateDocument } from "@/lib/firebaseDb";
-import { convertToKES } from "@/lib/currency";
 import { uploadImage, uploadMultipleImages, deleteImageFromStorage } from "@/lib/firebaseStorage";
 
 const CATEGORIES = ["Abayas", "VIP Abayas", "Wedding Dirah", "Perfumes", "Luxury Bags", "Jewelry", "Shoes"];
@@ -18,6 +17,7 @@ export default function EditProduct() {
   const [gallery, setGallery] = useState<string[]>([]);
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,7 +72,7 @@ export default function EditProduct() {
           setForm({
             name: p.name || "",
             category: p.category || "Abayas",
-            price: String(p.originalPrice || Math.round((p.price || 0) / 130) || ""),
+            price: String(p.originalPrice || p.price || ""),
             image: p.image || "",
             badge: p.badge || "",
             description: p.description || "",
@@ -92,26 +92,34 @@ export default function EditProduct() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!id) return;
-    const colors = form.colors ? form.colors.split(",").map((c: string) => {
-      const [name, hex] = c.trim().split("|");
-      return { name: name?.trim() || c.trim(), hex: hex?.trim() || "#000000" };
-    }) : [];
-    await updateDocument("products", id, {
-      name: form.name,
-      category: form.category,
-      price: convertToKES(Number(form.price)),
-      originalPrice: Number(form.price),
-      image: form.image,
-      images: gallery.length > 0 ? gallery : [],
-      badge: form.badge || null,
-      description: form.description,
-      sizes: form.sizes ? form.sizes.split(",").map((s: string) => s.trim()) : [],
-      colors,
-      material: form.material,
-      stock: Number(form.stock),
-      featured: form.featured,
-    });
-    router.push("/admin/products");
+    if (!form.price) { alert("Enter a price"); return; }
+    setSaving(true);
+    try {
+      const colors = form.colors ? form.colors.split(",").map((c: string) => {
+        const [name, hex] = c.trim().split("|");
+        return { name: name?.trim() || c.trim(), hex: hex?.trim() || "#000000" };
+      }) : [];
+      await updateDocument("products", id, {
+        name: form.name,
+        category: form.category,
+        price: Number(form.price),
+        originalPrice: Number(form.price),
+        image: form.image,
+        images: gallery.length > 0 ? gallery : [],
+        badge: form.badge || null,
+        description: form.description,
+        sizes: form.sizes ? form.sizes.split(",").map((s: string) => s.trim()) : [],
+        colors,
+        material: form.material,
+        stock: Number(form.stock),
+        featured: form.featured,
+      });
+      router.push("/admin/products");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save product: " + ((err as any)?.message || "Unknown error"));
+    }
+    setSaving(false);
   };
 
   if (loading) return <p className="text-warm-gray font-body text-sm">Loading...</p>;
@@ -132,8 +140,8 @@ export default function EditProduct() {
             </select>
           </div>
           <div>
-            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Price (USD)</label>
-            <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" required min="0" />
+            <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Price (KES)</label>
+            <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" required min="0" placeholder="Enter price in KSh" />
           </div>
           <div>
             <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Badge</label>
@@ -204,7 +212,7 @@ export default function EditProduct() {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <button type="submit" className="flex-1 bg-charcoal dark:bg-gold py-3.5 text-xs tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body transition-all hover:bg-gold hover:text-charcoal dark:hover:bg-ivory min-h-[48px]">Save Changes</button>
+          <button type="submit" disabled={saving || uploadingMain || uploadingGallery} className="flex-1 bg-charcoal dark:bg-gold py-3.5 text-xs tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body transition-all hover:bg-gold hover:text-charcoal dark:hover:bg-ivory min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
           <button type="button" onClick={() => router.push("/admin/products")} className="border border-charcoal/20 dark:border-ivory/20 px-6 py-3.5 text-xs tracking-[0.2em] uppercase text-charcoal dark:text-ivory font-body transition-colors hover:bg-charcoal hover:text-ivory dark:hover:bg-ivory dark:hover:text-charcoal min-h-[48px]">Cancel</button>
         </div>
       </form>
