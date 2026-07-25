@@ -19,9 +19,9 @@ const COLUMNS = [
 ];
 
 const SOCIALS = [
-  { name: "Instagram", href: "#", label: "IG" },
-  { name: "TikTok", href: "#", label: "TK" },
-  { name: "Snapchat", href: "#", label: "SC" },
+  { name: "Instagram", href: "https://www.instagram.com/dunia.boutiques?igsh=cG1oMDZidDJxeDhj&utm_source=qr", label: "IG" },
+  { name: "TikTok", href: "https://www.tiktok.com/@dunia.boutique?_r=1&_t=ZS-98JDCW8egB3", label: "TK" },
+  { name: "Snapchat", href: "https://snapchat.com/t/Nq2nWrrI", label: "SC" },
 ];
 
 export function Footer() {
@@ -48,9 +48,9 @@ export function Footer() {
                 let href = "#";
                 if (link === "Contact Us") href = "/contact";
                 else if (link === "WhatsApp") href = "https://wa.me/254725133957";
-                else if (link === "Instagram") href = "#";
-                else if (link === "TikTok") href = "#";
-                else if (link === "Snapchat") href = "#";
+                else if (link === "Instagram") href = "https://www.instagram.com/dunia.boutiques?igsh=cG1oMDZidDJxeDhj&utm_source=qr";
+                else if (link === "TikTok") href = "https://www.tiktok.com/@dunia.boutique?_r=1&_t=ZS-98JDCW8egB3";
+                else if (link === "Snapchat") href = "https://snapchat.com/t/Nq2nWrrI";
                 else if (link === "Size Guide") href = "#";
                 else if (link === "Shipping & Returns") href = "#";
                 else if (link === "FAQ") href = "#";
