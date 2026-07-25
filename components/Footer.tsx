@@ -58,7 +58,18 @@ export function Footer() {
                 else if (link === "Best Sellers") href = "/";
                 else if (link === "The Abaya Edit") href = "/abayas";
                 else if (link === "Jewelry Collection") href = "/jewelry";
-                return (
+                const isExternal = href.startsWith("http");
+                return isExternal ? (
+                  <a
+                    key={link}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block font-serif text-sm text-ivory/40 hover:text-gold transition-colors mb-3 cursor-pointer"
+                  >
+                    {link}
+                  </a>
+                ) : (
                   <Link
                     key={link}
                     href={href}
@@ -77,13 +88,15 @@ export function Footer() {
           </span>
           <div className="flex items-center gap-6">
             {SOCIALS.map((s) => (
-              <Link
+              <a
                 key={s.name}
                 href={s.href}
-                className="text-[10px] tracking-[0.2em] uppercase text-ivory/25 hover:text-gold transition-colors font-body"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] tracking-[0.2em] uppercase text-ivory/25 hover:text-gold transition-colors font-body cursor-pointer"
               >
                 {s.label}
-              </Link>
+              </a>
             ))}
           </div>
         </div>
