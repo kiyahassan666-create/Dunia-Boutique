@@ -3,16 +3,20 @@ import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
 
+// Use environment variables for Firebase config (required for production on Vercel)
+// Fallback to hardcoded values only for local development backward compatibility
 const firebaseConfig = {
-  apiKey: "AIzaSyBS7z71Z886VuXTySpmxrC3Hf30gkNUCzE",
-  authDomain: "dunia-boutique.firebaseapp.com",
-  projectId: "dunia-boutique",
-  storageBucket: "dunia-boutique.firebasestorage.app",
-  messagingSenderId: "842999784659",
-  appId: "1:842999784659:web:37e2b6dbe988d89c362026",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBS7z71Z886VuXTySpmxrC3Hf30gkNUCzE",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "dunia-boutique.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "dunia-boutique",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "dunia-boutique.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "842999784659",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:842999784659:web:37e2b6dbe988d89c362026",
 };
 
 console.log("[Firebase] Config loaded:", {
+  source: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? "environment variables" : "hardcoded fallback",
+  projectId: firebaseConfig.projectId,
   hasApiKey: !!firebaseConfig.apiKey,
   hasProjectId: !!firebaseConfig.projectId,
   hasAll: !!(firebaseConfig.apiKey && firebaseConfig.authDomain && firebaseConfig.projectId && firebaseConfig.storageBucket && firebaseConfig.messagingSenderId && firebaseConfig.appId),
