@@ -108,8 +108,8 @@ export default function ContactPage() {
             <div className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-8 lg:p-10">
               <h2 className="font-serif text-xl font-medium text-charcoal dark:text-[#E8E0D8] mb-4">Visit Us</h2>
               <p className="font-serif text-sm text-warm-gray dark:text-[#A09890] leading-relaxed">
-                Dunia Boutique<br />
-                Nairobi, Kenya
+                BBS Mall, Shop No - GC 56/57<br />
+                Ground Floor
               </p>
               <p className="font-serif text-sm text-warm-gray dark:text-[#A09890] leading-relaxed mt-4">
                 <span className="text-charcoal dark:text-[#E8E0D8]">Phone:</span> {DISPLAY_NUMBER}
