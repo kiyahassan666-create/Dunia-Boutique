@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { getAllImageEntries, updateImage, IMAGE_DEFAULTS } from "@/lib/siteImages";
 import { uploadImage, deleteImageFromStorage } from "@/lib/firebaseStorage";
 
@@ -15,9 +15,7 @@ export default function AdminMedia() {
   const [urlInput, setUrlInput] = useState("");
   const [pageFilter, setPageFilter] = useState("All");
   const [dragKey, setDragKey] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploadKey, setUploadKey] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -31,30 +29,21 @@ export default function AdminMedia() {
     setEntries(all);
   };
 
-  const handleFilePick = (key: string) => {
-    setUploadKey(key);
-    fileRef.current?.click();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !uploadKey) return;
-    setUploading(true);
+  const handleUpload = async (key: string, file: File) => {
+    setUploading(key);
     try {
-      const existing = entries.find(ent => ent.key === uploadKey);
+      const existing = entries.find(ent => ent.key === key);
       if (existing?.currentUrl && existing.currentUrl.startsWith("https://firebasestorage.googleapis.com")) {
         await deleteImageFromStorage(existing.currentUrl);
       }
       const url = await uploadImage(file, "site");
-      await updateImage(uploadKey, url);
+      await updateImage(key, url);
       await refresh();
     } catch (err) {
       console.error("Media upload failed:", err);
       alert("Upload failed: " + ((err as any)?.message || "Unknown error"));
     }
-    setUploading(false);
-    setUploadKey(null);
-    e.target.value = "";
+    setUploading(null);
   };
 
   const handleUrlSave = async (key: string) => {
@@ -121,8 +110,6 @@ export default function AdminMedia() {
         ))}
       </div>
 
-      <input ref={fileRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filtered.map(entry => (
           <div
@@ -137,17 +124,21 @@ export default function AdminMedia() {
                 <>
                   <img src={entry.currentUrl} alt={entry.label} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleFilePick(entry.key)} className="bg-ivory/90 px-3 py-1.5 text-[9px] tracking-[0.15em] uppercase text-charcoal font-body hover:bg-ivory transition-colors">Replace</button>
+                    <label className="cursor-pointer bg-ivory/90 px-3 py-1.5 text-[9px] tracking-[0.15em] uppercase text-charcoal font-body hover:bg-ivory transition-colors">
+                      {uploading === entry.key ? "..." : "Replace"}
+                      <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(entry.key, f); e.target.value = ""; }} className="hidden" disabled={!!uploading} />
+                    </label>
                     <button onClick={() => handleDelete(entry.key)} className="bg-red-500/90 px-3 py-1.5 text-[9px] tracking-[0.15em] uppercase text-white font-body hover:bg-red-600 transition-colors">Delete</button>
                   </div>
                 </>
               ) : (
-                <button onClick={() => handleFilePick(entry.key)} className="w-full h-full flex items-center justify-center text-warm-gray/40 text-[10px] tracking-[0.2em] uppercase font-body hover:text-warm-gray/60 transition-colors">
+                <label className="cursor-pointer w-full h-full flex items-center justify-center text-warm-gray/40 text-[10px] tracking-[0.2em] uppercase font-body hover:text-warm-gray/60 transition-colors">
                   <div className="text-center">
                     <span className="text-2xl block mb-1">+</span>
-                    Click to Upload
+                    {uploading === entry.key ? "Uploading..." : "Click to Upload"}
                   </div>
-                </button>
+                  <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(entry.key, f); e.target.value = ""; }} className="hidden" disabled={!!uploading} />
+                </label>
               )}
             </div>
             <span className="block text-[10px] tracking-[0.2em] uppercase text-gold-dark font-body">{entry.section}</span>
@@ -164,10 +155,13 @@ export default function AdminMedia() {
               </div>
             ) : (
               <div className="mt-3 flex gap-2">
-                <button onClick={() => handleFilePick(entry.key)} disabled={uploading} className="flex-1 border border-gold/20 py-2 text-[9px] tracking-[0.2em] uppercase text-charcoal dark:text-[#E8E0D8] font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-ivory dark:hover:text-charcoal transition-colors disabled:opacity-40 disabled:cursor-not-allowed">{uploading ? "Uploading..." : "Upload"}</button>
-                <button onClick={() => { setEditing(entry.key); setUrlInput(entry.currentUrl || ""); }} disabled={uploading} className="px-3 py-2 text-[9px] tracking-[0.15em] uppercase text-gold-dark font-body hover:text-gold transition-colors disabled:opacity-40">URL</button>
+                <label className="cursor-pointer flex-1 border border-gold/20 py-2 text-[9px] tracking-[0.2em] uppercase text-charcoal dark:text-[#E8E0D8] font-body hover:bg-charcoal hover:text-ivory dark:hover:bg-ivory dark:hover:text-charcoal transition-colors disabled:opacity-40 disabled:cursor-not-allowed text-center min-h-[36px] flex items-center justify-center">
+                  {uploading === entry.key ? "..." : "Upload"}
+                  <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(entry.key, f); e.target.value = ""; }} className="hidden" disabled={!!uploading} />
+                </label>
+                <button onClick={() => { setEditing(entry.key); setUrlInput(entry.currentUrl || ""); }} disabled={!!uploading} className="px-3 py-2 text-[9px] tracking-[0.15em] uppercase text-gold-dark font-body hover:text-gold transition-colors disabled:opacity-40">URL</button>
                 {entry.currentUrl && (
-                  <button onClick={() => handleReset(entry.key)} disabled={uploading} className="px-3 py-2 text-[9px] tracking-[0.15em] uppercase text-amber-500 font-body hover:text-amber-600 transition-colors disabled:opacity-40">Reset</button>
+                  <button onClick={() => handleReset(entry.key)} disabled={!!uploading} className="px-3 py-2 text-[9px] tracking-[0.15em] uppercase text-amber-500 font-body hover:text-amber-600 transition-colors disabled:opacity-40">Reset</button>
                 )}
               </div>
             )}
