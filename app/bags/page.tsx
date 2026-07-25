@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { SafeImage } from "@/components/SafeImage";
 import { Newsletter } from "@/components/Newsletter";
 import ProductCard from "@/components/ProductCard";
 import { getProductsByCategory } from "@/lib/firebaseDb";
@@ -30,9 +30,9 @@ export default function BagsPage() {
   return (
     <>
       <section className="relative h-[50vh] min-h-[380px] w-full">
-        <Image
-          src="https://images.unsplash.com/photo-1566150905458-1bf1fc113f0d?w=1600&q=85&auto=format&fit=crop"
-          alt="Luxury bag collection"
+        <SafeImage
+          src={heroImage || "https://images.unsplash.com/photo-1543076447-215ad9ba6923?w=1600&q=85&auto=format&fit=crop"}
+          alt="Designer bag collection"
           fill
           className="object-cover"
           priority
@@ -74,9 +74,9 @@ export default function BagsPage() {
         <div className="mx-auto max-w-7xl px-6 py-20 lg:px-12 lg:py-28">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative aspect-[4/5] overflow-hidden">
-              <Image
-                src="https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=900&q=85&auto=format&fit=crop"
-                alt="Dunia bag craftsmanship"
+              <SafeImage
+                src={storyImage || "https://images.unsplash.com/photo-1594223274512-ad4803239db7?w=900&q=85&auto=format&fit=crop"}
+                alt="Bag craftsmanship"
                 fill
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 50vw"

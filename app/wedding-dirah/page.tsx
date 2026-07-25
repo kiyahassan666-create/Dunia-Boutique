@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { SafeImage } from "@/components/SafeImage";
 import { Newsletter } from "@/components/Newsletter";
 import ProductCard from "@/components/ProductCard";
 import { getProductsByCategory } from "@/lib/firebaseDb";
@@ -30,7 +30,7 @@ export default function WeddingDirahPage() {
   return (
     <>
       <section className="relative h-[55vh] min-h-[420px] w-full">
-        <Image
+        <SafeImage
           src={heroImage || "https://images.unsplash.com/photo-1608236415050-8d3d65c3523e?w=1600&q=85&auto=format&fit=crop"}
           alt="Wedding dirah collection"
           fill
@@ -89,7 +89,7 @@ export default function WeddingDirahPage() {
         <div className="mx-auto max-w-7xl px-6 py-20 lg:px-12 lg:py-28">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative aspect-[4/5] overflow-hidden">
-              <Image
+              <SafeImage
                 src={storyImage || "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=900&q=85&auto=format&fit=crop"}
                 alt="Wedding dirah craftsmanship"
                 fill

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
+import { SafeImage } from "@/components/SafeImage";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCartItems, saveCartItems, getWishlistItems, saveWishlistItems } from "@/lib/firebaseSync";
 import { getDocument } from "@/lib/firebaseDb";
@@ -49,7 +49,7 @@ export default function ProductPage() {
         </Link>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
           <div className="relative aspect-[3/4] overflow-hidden bg-ivory dark:bg-[#0A0A0A]">
-            <Image src={product.image} alt={product.name} fill className="object-cover" priority sizes="(max-width:1024px)100vw,50vw" />
+            <SafeImage src={product.image} alt={product.name} fill className="object-cover" priority sizes="(max-width:1024px)100vw,50vw" />
             {product.badge && <span className="absolute top-5 left-5 bg-charcoal/90 px-4 py-2 text-[9px] tracking-[0.2em] uppercase text-ivory font-body backdrop-blur-sm">{product.badge}</span>}
           </div>
           <div className="flex flex-col justify-center">

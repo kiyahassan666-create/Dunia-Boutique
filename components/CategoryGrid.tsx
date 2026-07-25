@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { SafeImage } from "@/components/SafeImage";
 import { getDocuments, getDocument } from "@/lib/firebaseDb";
 import { getSiteImages } from "@/lib/siteImages";
 
@@ -70,7 +70,7 @@ export function CategoryGrid() {
               href={`/${cat.slug}`}
               className="group relative flex aspect-[3/4] flex-col justify-end overflow-hidden bg-ivory dark:bg-[#0F0F0F]"
             >
-              <Image
+              <SafeImage
                 src={cat.image || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80&auto=format&fit=crop"}
                 alt={cat.name}
                 fill

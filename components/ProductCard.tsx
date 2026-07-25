@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { SafeImage } from "@/components/SafeImage";
 import { Product } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { getWishlistItems, saveWishlistItems } from "@/lib/firebaseSync";
@@ -44,7 +44,7 @@ export default function ProductCard({ product, priority }: ProductCardProps) {
   return (
     <Link href={`/product/${product.id}`} className="group relative bg-ivory dark:bg-[#0F0F0F] block">
       <div className="relative aspect-[3/4] overflow-hidden">
-        <Image
+        <SafeImage
           src={product.image}
           alt={product.name}
           fill
