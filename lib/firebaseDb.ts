@@ -38,17 +38,19 @@ export async function getDocument<T = any>(colName: string, docId: string): Prom
 
 export async function addDocument(colName: string, data: any, id?: string): Promise<string> {
   const fireDb = ensureDb();
+  const clean = JSON.parse(JSON.stringify(data));
   if (id) {
-    await setDoc(doc(fireDb, colName, id), { ...data, createdAt: Timestamp.now() });
+    await setDoc(doc(fireDb, colName, id), { ...clean, createdAt: Timestamp.now() });
     return id;
   }
-  const docRef = await addDoc(collection(fireDb, colName), { ...data, createdAt: Timestamp.now() });
+  const docRef = await addDoc(collection(fireDb, colName), { ...clean, createdAt: Timestamp.now() });
   return docRef.id;
 }
 
 export async function updateDocument(colName: string, docId: string, data: any): Promise<void> {
   const docRef = doc(ensureDb(), colName, docId);
-  await updateDoc(docRef, { ...data, updatedAt: Timestamp.now() });
+  const clean = JSON.parse(JSON.stringify(data));
+  await updateDoc(docRef, { ...clean, updatedAt: Timestamp.now() });
 }
 
 export async function deleteDocument(colName: string, docId: string): Promise<void> {
