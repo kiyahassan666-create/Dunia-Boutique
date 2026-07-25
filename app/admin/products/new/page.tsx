@@ -75,7 +75,7 @@ export default function NewProduct() {
         price: Number(form.price),
         originalPrice: Number(form.price),
         image: form.image || (gallery.length > 0 ? gallery[0] : ""),
-        images: gallery.length > 0 ? gallery : undefined,
+        images: gallery.length > 0 ? gallery : [],
         badge: form.badge || null,
         description: form.description,
         sizes: form.sizes ? form.sizes.split(",").map((s: string) => s.trim()) : [],
