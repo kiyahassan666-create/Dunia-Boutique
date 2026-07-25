@@ -89,9 +89,10 @@ export default function EditProduct() {
     })();
   }, [id]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveProduct = async () => {
     if (!id) return;
+    if (saving || uploadingMain || uploadingGallery) return;
+    if (!form.name.trim()) { alert("Enter a product name"); return; }
     if (!form.price) { alert("Enter a price"); return; }
     setSaving(true);
     try {
@@ -100,7 +101,7 @@ export default function EditProduct() {
         return { name: name?.trim() || c.trim(), hex: hex?.trim() || "#000000" };
       }) : [];
       await updateDocument("products", id, {
-        name: form.name,
+        name: form.name.trim(),
         category: form.category,
         price: Number(form.price),
         originalPrice: Number(form.price),
@@ -118,8 +119,8 @@ export default function EditProduct() {
     } catch (err) {
       console.error(err);
       alert("Failed to save product: " + ((err as any)?.message || "Unknown error"));
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   if (loading) return <p className="text-warm-gray font-body text-sm">Loading...</p>;
@@ -127,11 +128,11 @@ export default function EditProduct() {
   return (
     <div>
       <h1 className="font-serif text-2xl font-medium text-charcoal dark:text-[#E8E0D8] mb-6 sm:mb-8">Edit Product</h1>
-      <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+      <form onSubmit={e => { e.preventDefault(); saveProduct(); }} className="space-y-5 sm:space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <div className="sm:col-span-2">
             <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Product Name</label>
-            <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" required />
+            <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" />
           </div>
           <div>
             <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Category</label>
@@ -141,7 +142,7 @@ export default function EditProduct() {
           </div>
           <div>
             <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Price (KES)</label>
-            <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" required min="0" placeholder="Enter price in KSh" />
+            <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold" min="0" placeholder="Enter price in KSh" />
           </div>
           <div>
             <label className="block text-xs tracking-[0.2em] uppercase text-warm-gray font-body mb-1.5">Badge</label>
@@ -212,7 +213,7 @@ export default function EditProduct() {
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <button type="submit" disabled={saving || uploadingMain || uploadingGallery} className="flex-1 bg-charcoal dark:bg-gold py-3.5 text-xs tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body transition-all hover:bg-gold hover:text-charcoal dark:hover:bg-ivory min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
+          <button type="button" onClick={saveProduct} disabled={saving || uploadingMain || uploadingGallery} className="flex-1 bg-charcoal dark:bg-gold py-3.5 text-xs tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body transition-all hover:bg-gold hover:text-charcoal dark:hover:bg-ivory min-h-[48px] disabled:opacity-50 disabled:cursor-not-allowed">{saving ? "Saving..." : "Save Changes"}</button>
           <button type="button" onClick={() => router.push("/admin/products")} className="border border-charcoal/20 dark:border-ivory/20 px-6 py-3.5 text-xs tracking-[0.2em] uppercase text-charcoal dark:text-ivory font-body transition-colors hover:bg-charcoal hover:text-ivory dark:hover:bg-ivory dark:hover:text-charcoal min-h-[48px]">Cancel</button>
         </div>
       </form>
