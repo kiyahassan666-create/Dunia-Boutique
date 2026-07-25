@@ -30,14 +30,16 @@ export default function VipAbayasPage() {
   return (
     <>
       <section className="relative h-[55vh] min-h-[420px] w-full">
-        <SafeImage
-          src={heroImage || "https://images.unsplash.com/photo-1623609871568-073325bf6b21?w=1600&q=85&auto=format&fit=crop"}
-          alt="VIP abaya collection"
-          fill
-          className="object-cover"
-          priority
-          sizes="100vw"
-        />
+        {heroImage && (
+          <SafeImage
+            src={heroImage}
+            alt="VIP abaya collection"
+            fill
+            className="object-cover"
+            priority
+            sizes="100vw"
+          />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/50" />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center max-w-2xl px-6">
@@ -89,13 +91,15 @@ export default function VipAbayasPage() {
         <div className="mx-auto max-w-7xl px-6 py-20 lg:px-12 lg:py-28">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative aspect-[4/5] overflow-hidden">
-              <SafeImage
-                src={storyImage || "https://images.unsplash.com/photo-1564257631407-4deb1f99d992?w=900&q=85&auto=format&fit=crop"}
-                alt="Abaya craftsmanship"
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-              />
+              {storyImage && (
+                <SafeImage
+                  src={storyImage}
+                  alt="Abaya craftsmanship"
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
+              )}
               <div className="absolute inset-0 bg-black/20" />
             </div>
             <div className="max-w-lg">

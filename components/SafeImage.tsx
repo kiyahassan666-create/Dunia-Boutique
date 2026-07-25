@@ -3,21 +3,16 @@
 import Image, { ImageProps } from "next/image";
 import { useState } from "react";
 
-const DEFAULT_FALLBACK =
-  "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80&auto=format&fit=crop";
-
 type SafeImageProps = Omit<ImageProps, "onError"> & {
-  fallbackSrc?: string;
+  hideOnError?: boolean;
 };
 
-export function SafeImage({ fallbackSrc = DEFAULT_FALLBACK, ...props }: SafeImageProps) {
+export function SafeImage({ hideOnError = true, ...props }: SafeImageProps) {
   const [error, setError] = useState(false);
 
-  return (
-    <Image
-      {...props}
-      src={error ? fallbackSrc : props.src}
-      onError={() => setError(true)}
-    />
-  );
+  if (!props.src) return null;
+  if (error && hideOnError) return null;
+  if (error) return null;
+
+  return <Image {...props} onError={() => setError(true)} />;
 }

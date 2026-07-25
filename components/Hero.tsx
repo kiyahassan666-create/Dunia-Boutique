@@ -19,14 +19,16 @@ export function Hero() {
 
   return (
     <section className="relative h-[75vh] min-h-[500px] w-full">
-      <SafeImage
-        src={heroImage || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=1600&q=85&auto=format&fit=crop"}
-        alt=""
-        fill
-        className="object-cover"
-        priority
-        sizes="100vw"
-      />
+      {heroImage && (
+        <SafeImage
+          src={heroImage}
+          alt=""
+          fill
+          className="object-cover"
+          priority
+          sizes="100vw"
+        />
+      )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-black/40" />
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="max-w-2xl text-center px-6">

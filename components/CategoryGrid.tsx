@@ -70,13 +70,15 @@ export function CategoryGrid() {
               href={`/${cat.slug}`}
               className="group relative flex aspect-[3/4] flex-col justify-end overflow-hidden bg-ivory dark:bg-[#0F0F0F]"
             >
-              <SafeImage
-                src={cat.image || "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80&auto=format&fit=crop"}
-                alt={cat.name}
-                fill
-                className="object-cover transition-all duration-700 group-hover:scale-105"
-                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 14vw"
-              />
+              {cat.image && (
+                <SafeImage
+                  src={cat.image}
+                  alt={cat.name}
+                  fill
+                  className="object-cover transition-all duration-700 group-hover:scale-105"
+                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 14vw"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
               <div className="relative z-10 p-5">
                 <h3 className="font-serif text-lg font-medium text-ivory">{cat.name}</h3>

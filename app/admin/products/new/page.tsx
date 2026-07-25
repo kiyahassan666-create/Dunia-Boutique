@@ -70,7 +70,7 @@ export default function NewProduct() {
       category: form.category,
       price: convertToKES(Number(form.price)),
       originalPrice: Number(form.price),
-      image: form.image || (gallery.length > 0 ? gallery[0] : "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600&q=80"),
+      image: form.image || (gallery.length > 0 ? gallery[0] : ""),
       images: gallery.length > 0 ? gallery : undefined,
       badge: form.badge || null,
       description: form.description,
