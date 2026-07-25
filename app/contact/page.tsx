@@ -67,7 +67,7 @@ export default function ContactPage() {
               <h2 className="font-serif text-xl font-medium text-charcoal dark:text-[#E8E0D8] mb-6">Follow Us</h2>
               <div className="space-y-5">
                 <a
-                  href="#"
+                  href="https://www.instagram.com/dunia.boutiques?igsh=cG1oMDZidDJxeDhj&utm_source=qr"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-4 group"
@@ -79,7 +79,7 @@ export default function ContactPage() {
                   </div>
                 </a>
                 <a
-                  href="#"
+                  href="https://www.tiktok.com/@dunia.boutique?_r=1&_t=ZS-98JDCW8egB3"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-4 group"
@@ -91,7 +91,7 @@ export default function ContactPage() {
                   </div>
                 </a>
                 <a
-                  href="#"
+                  href="https://snapchat.com/t/Nq2nWrrI"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-4 group"
