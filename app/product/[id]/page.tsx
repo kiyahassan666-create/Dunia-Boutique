@@ -5,14 +5,21 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { SafeImage } from "@/components/SafeImage";
 import { useAuth } from "@/contexts/AuthContext";
-import { getCartItems, saveCartItems, getWishlistItems, saveWishlistItems } from "@/lib/firebaseSync";
+import { getCartItems, saveCartItems } from "@/lib/firebaseSync";
 import { getDocument } from "@/lib/firebaseDb";
 import { formatKES } from "@/lib/currency";
+
+function getLocalCart(): any[] {
+  try { const raw = localStorage.getItem("guest_cart"); return raw ? JSON.parse(raw) : []; } catch { return []; }
+}
+function saveLocalCart(items: any[]): void {
+  try { localStorage.setItem("guest_cart", JSON.stringify(items)); } catch {}
+}
 
 export default function ProductPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
-  const { user, triggerGuestModal } = useAuth();
+  const { user } = useAuth();
   const [product, setProduct] = useState<any>(null);
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
@@ -30,10 +37,15 @@ export default function ProductPage() {
 
   const addToCart = async () => {
     if (!product) return;
-    if (!user) { triggerGuestModal("add to cart"); return; }
-    const cart = await getCartItems(user.uid!);
-    cart.push({ ...product, size: selectedSize, color: selectedColor, quantity: 1 });
-    await saveCartItems(user.uid!, cart);
+    if (user) {
+      const cart = await getCartItems(user.uid!);
+      cart.push({ ...product, size: selectedSize, color: selectedColor, quantity: 1 });
+      await saveCartItems(user.uid!, cart);
+    } else {
+      const cart = getLocalCart();
+      cart.push({ ...product, size: selectedSize, color: selectedColor, quantity: 1 });
+      saveLocalCart(cart);
+    }
     window.dispatchEvent(new Event("cart-update"));
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 2000);

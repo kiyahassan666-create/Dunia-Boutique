@@ -20,7 +20,8 @@ export function AuthModal() {
           <Link href="/login" onClick={() => setShowGuestModal(false)} className="bg-charcoal dark:bg-gold px-6 py-3 text-[10px] tracking-[0.2em] uppercase text-ivory dark:text-charcoal font-body hover:bg-gold hover:text-charcoal transition-colors">Log In</Link>
           <Link href="/signup" onClick={() => setShowGuestModal(false)} className="border border-gold/20 px-6 py-3 text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body hover:text-charcoal transition-colors">Sign Up</Link>
         </div>
-        <button onClick={() => setShowGuestModal(false)} className="mt-4 text-[9px] tracking-[0.2em] uppercase text-warm-gray/60 hover:text-warm-gray font-body transition-colors">Continue Browsing</button>
+        <button onClick={() => setShowGuestModal(false)} className="mt-4 text-[9px] tracking-[0.2em] uppercase text-gold-dark hover:text-gold font-body transition-colors underline underline-offset-2">Continue as Guest</button>
+        <button onClick={() => setShowGuestModal(false)} className="block mx-auto mt-2 text-[9px] tracking-[0.2em] uppercase text-warm-gray/60 hover:text-warm-gray font-body transition-colors">Continue Browsing</button>
       </div>
     </div>
   );

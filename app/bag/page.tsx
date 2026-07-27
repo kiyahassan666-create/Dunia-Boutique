@@ -7,28 +7,37 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getCartItems, saveCartItems } from "@/lib/firebaseSync";
 import { formatKES } from "@/lib/currency";
 
+function getLocalCart(): BagItem[] {
+  try { const raw = localStorage.getItem("guest_cart"); return raw ? JSON.parse(raw) : []; } catch { return []; }
+}
+function saveLocalCart(items: BagItem[]): void {
+  try { localStorage.setItem("guest_cart", JSON.stringify(items)); } catch {}
+}
+
 interface BagItem {
   id: string; name: string; price: number; image: string; category: string;
   size?: string; color?: string; quantity: number;
 }
 
 export default function BagPage() {
-  const { user, triggerGuestModal } = useAuth();
+  const { user } = useAuth();
   const [items, setItems] = useState<BagItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { triggerGuestModal("view bag"); setLoading(false); return; }
     (async () => {
       setLoading(true);
-      const items = await getCartItems(user.uid!);
-      setItems(items);
+      if (user) {
+        const items = await getCartItems(user.uid!);
+        setItems(items);
+      } else {
+        setItems(getLocalCart());
+      }
       setLoading(false);
     })();
   }, [user]);
 
   const updateQuantity = async (id: string, delta: number) => {
-    if (!user?.uid) return;
     const updated = items.map(item => {
       if (item.id === id) {
         const qty = Math.max(1, item.quantity + delta);
@@ -37,22 +46,28 @@ export default function BagPage() {
       return item;
     });
     setItems(updated);
-    await saveCartItems(user.uid!, updated);
+    if (user?.uid) {
+      await saveCartItems(user.uid!, updated);
+    } else {
+      saveLocalCart(updated);
+    }
     window.dispatchEvent(new Event("cart-update"));
   };
 
   const removeItem = async (id: string) => {
-    if (!user?.uid) return;
     const updated = items.filter(item => item.id !== id);
     setItems(updated);
-    await saveCartItems(user.uid!, updated);
+    if (user?.uid) {
+      await saveCartItems(user.uid!, updated);
+    } else {
+      saveLocalCart(updated);
+    }
     window.dispatchEvent(new Event("cart-update"));
   };
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   if (loading) return <div className="min-h-screen pt-28 bg-cream dark:bg-[#0F0F0F]" />;
-  if (!user) return null;
 
   return (
     <div className="min-h-screen pt-28 bg-cream dark:bg-[#0F0F0F]">
