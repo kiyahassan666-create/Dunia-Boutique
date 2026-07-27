@@ -12,23 +12,36 @@ interface CartItem {
   size?: string; color?: string; quantity: number;
 }
 
+function getLocalCart(): CartItem[] {
+  try {
+    const raw = localStorage.getItem("guest_cart");
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveLocalCart(items: CartItem[]): void {
+  try { localStorage.setItem("guest_cart", JSON.stringify(items)); } catch {}
+}
+
 export default function CartPage() {
-  const { user, triggerGuestModal } = useAuth();
+  const { user } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { triggerGuestModal("view cart"); setLoading(false); return; }
     (async () => {
       setLoading(true);
-      const items = await getCartItems(user.uid!);
-      setItems(items);
+      if (user) {
+        const cart = await getCartItems(user.uid!);
+        setItems(cart);
+      } else {
+        setItems(getLocalCart());
+      }
       setLoading(false);
     })();
   }, [user]);
 
   const updateQuantity = async (id: string, delta: number) => {
-    if (!user?.uid) return;
     const updated = items.map(item => {
       if (item.id === id) {
         const qty = Math.max(1, item.quantity + delta);
@@ -37,22 +50,28 @@ export default function CartPage() {
       return item;
     });
     setItems(updated);
-    await saveCartItems(user.uid!, updated);
+    if (user?.uid) {
+      await saveCartItems(user.uid!, updated);
+    } else {
+      saveLocalCart(updated);
+    }
     window.dispatchEvent(new Event("cart-update"));
   };
 
   const removeItem = async (id: string) => {
-    if (!user?.uid) return;
     const updated = items.filter(item => item.id !== id);
     setItems(updated);
-    await saveCartItems(user.uid!, updated);
+    if (user?.uid) {
+      await saveCartItems(user.uid!, updated);
+    } else {
+      saveLocalCart(updated);
+    }
     window.dispatchEvent(new Event("cart-update"));
   };
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   if (loading) return <div className="min-h-screen pt-28 bg-cream dark:bg-[#0F0F0F]" />;
-  if (!user) return null;
 
   return (
     <div className="min-h-screen pt-28 bg-cream dark:bg-[#0F0F0F]">
@@ -78,7 +97,7 @@ export default function CartPage() {
                     <Link href={`/product/${item.id}`} className="font-serif text-base font-medium text-charcoal dark:text-[#E8E0D8] hover:text-gold transition-colors">{item.name}</Link>
                     <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mt-1">{item.category}</p>
                     {item.size && <p className="text-[11px] text-warm-gray font-body mt-1">Size: {item.size}</p>}
-                    {item.color && <p className="text-[11px] text-warm-gray font-body">Color: {item.color}</p>}
+                    {item.color && <p className="text-[11px] text-warm-gray font-body mt-1">Color: {item.color}</p>}
                     <p className="font-serif text-base text-gold-dark mt-2">{formatKES(item.price)}</p>
                     <div className="flex items-center gap-3 mt-3">
                       <div className="flex items-center border border-gold/20">
