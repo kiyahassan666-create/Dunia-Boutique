@@ -144,3 +144,16 @@ export async function getAllOrders(): Promise<any[]> {
 export async function updateOrderStatus(orderId: string, status: string): Promise<void> {
   await updateDocument(COLLECTIONS.orders, orderId, { status });
 }
+
+export async function updateOrderMpesaCode(orderId: string, mpesaCode: string, editCount: number): Promise<void> {
+  await updateDocument(COLLECTIONS.orders, orderId, { mpesaCode, mpesaEditCount: editCount });
+}
+
+export async function getOrdersByUser(userId: string): Promise<any[]> {
+  return getDocuments(COLLECTIONS.orders, where("userId", "==", userId), orderBy("createdAt", "desc"));
+}
+
+export async function getUserActiveOrders(userId: string): Promise<any[]> {
+  const all = await getOrdersByUser(userId);
+  return all.filter((o: any) => o.status === "Pending Payment" || o.status === "Processing");
+}
