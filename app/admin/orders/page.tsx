@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { getOrdersFromFirestore, updateOrderInFirestore } from "@/lib/firebaseSync";
+import { deleteDocument } from "@/lib/firebaseDb";
 import { formatKES } from "@/lib/currency";
 
-const STATUSES = ["Pending Payment", "Processing", "In Transit", "Delivered", "Cancelled"];
+const STATUSES = ["Pending Payment", "Processing", "Delivered", "Cancelled"];
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -59,14 +60,20 @@ export default function AdminOrders() {
     if (!confirm("Delete this order?")) return;
     setOrders(prev => prev.filter(o => o.id !== orderId));
     if (selectedOrder?.id === orderId) setSelectedOrder(null);
+    try {
+      await deleteDocument("orders", orderId);
+    } catch {}
   };
 
-  const today = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  const ts = orders.filter(o => o.date === today && o.paymentVerified);
-  const ms = orders.filter(o => o.date?.startsWith(today.slice(0, 7)) && o.paymentVerified);
-  const todayTotal = ts.reduce((s: number, o: any) => s + (o.total || 0), 0);
-  const monthTotal = ms.reduce((s: number, o: any) => s + (o.total || 0), 0);
-  const allTimeTotal = orders.filter((o: any) => o.paymentVerified).reduce((s: number, o: any) => s + (o.total || 0), 0);
+  const statusBadgeClass = (status: string) => {
+    switch (status) {
+      case "Delivered": return "text-green-600 bg-green-50 dark:bg-green-950/30";
+      case "Cancelled": return "text-red-400 bg-red-50 dark:bg-red-950/30";
+      case "Pending Payment": return "text-amber-500 bg-amber-50 dark:bg-amber-950/30";
+      case "Processing": return "text-blue-600 bg-blue-50 dark:bg-blue-950/30";
+      default: return "text-warm-gray bg-gold/5";
+    }
+  };
 
   if (loading) return <p className="text-warm-gray font-body text-sm">Loading...</p>;
 
@@ -75,24 +82,6 @@ export default function AdminOrders() {
       <div className="mb-8">
         <h1 className="font-serif text-2xl font-medium text-charcoal dark:text-[#E8E0D8]">Orders</h1>
         <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mt-1">{orders.length} orders total</p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-6 text-center">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body">Today&apos;s Sales</p>
-          <p className="font-serif text-3xl font-medium text-gold-dark mt-2">{formatKES(todayTotal)}</p>
-          <p className="text-[9px] text-warm-gray font-body mt-1">{ts.length} order{(ts.length !== 1) && "s"}</p>
-        </div>
-        <div className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-6 text-center">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body">This Month</p>
-          <p className="font-serif text-3xl font-medium text-gold-dark mt-2">{formatKES(monthTotal)}</p>
-          <p className="text-[9px] text-warm-gray font-body mt-1">{ms.length} order{(ms.length !== 1) && "s"}</p>
-        </div>
-        <div className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-6 text-center">
-          <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body">All Time</p>
-          <p className="font-serif text-3xl font-medium text-gold-dark mt-2">{formatKES(allTimeTotal)}</p>
-          <p className="text-[9px] text-warm-gray font-body mt-1">{orders.length} order{(orders.length !== 1) && "s"}</p>
-        </div>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-6">
@@ -127,9 +116,12 @@ export default function AdminOrders() {
                 <td className="px-3 sm:px-4 py-3 font-serif text-sm text-charcoal dark:text-[#E8E0D8] hidden sm:table-cell">{o.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0}</td>
                 <td className="px-3 sm:px-4 py-3 font-serif text-sm text-gold-dark whitespace-nowrap">{formatKES(o.total)}</td>
                 <td className="px-3 sm:px-4 py-3">
-                  <select value={o.status} onChange={e => updateStatus(o.id, e.target.value)} className={`text-[10px] sm:text-[11px] tracking-[0.15em] uppercase font-body border border-gold/10 px-2 py-1.5 min-h-[32px] outline-none bg-ivory dark:bg-[#0A0A0A] ${o.status === "Delivered" ? "text-green-600" : o.status === "Cancelled" ? "text-red-400" : o.status === "Pending Payment" ? "text-amber-500" : "text-warm-gray"}`}>
-                    {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  <button
+                    onClick={() => setSelectedOrder(o)}
+                    className={`text-[10px] sm:text-[11px] tracking-[0.15em] uppercase font-body px-3 py-1.5 rounded ${statusBadgeClass(o.status)}`}
+                  >
+                    View Order
+                  </button>
                 </td>
                 <td className="px-3 sm:px-4 py-3 text-[10px] sm:text-[11px] text-warm-gray font-body hidden sm:table-cell whitespace-nowrap">{o.date}</td>
                 <td className="px-3 sm:px-4 py-3">
@@ -152,6 +144,7 @@ export default function AdminOrders() {
               <button onClick={() => setSelectedOrder(null)} className="text-warm-gray hover:text-charcoal text-lg">✕</button>
             </div>
 
+            {/* Customer Details */}
             <div className="mb-6">
               <h3 className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-2">Customer Details</h3>
               <div className="border border-gold/10 p-4 space-y-1.5">
@@ -165,15 +158,17 @@ export default function AdminOrders() {
               </div>
             </div>
 
+            {/* Order Details */}
             <div className="mb-6">
               <h3 className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-2">Order Details</h3>
               <div className="border border-gold/10 p-4 space-y-1.5">
                 <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Date:</span> {selectedOrder.date}</p>
-                <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Status:</span> {selectedOrder.status}</p>
+                <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Status:</span> <span className={`font-medium ${selectedOrder.status === "Delivered" ? "text-green-600" : selectedOrder.status === "Cancelled" ? "text-red-400" : selectedOrder.status === "Pending Payment" ? "text-amber-500" : "text-blue-600"}`}>{selectedOrder.status}</span></p>
                 <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Payment:</span> {selectedOrder.paymentMethod || "—"}</p>
                 {selectedOrder.mpesaCode && (
                   <div className="pt-2 border-t border-gold/10">
                     <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">M-Pesa Code:</span> <span className="font-mono text-sm text-gold-dark font-bold">{selectedOrder.mpesaCode}</span></p>
+                    {selectedOrder.mpesaEditCount ? <p className="text-[9px] text-warm-gray font-body mt-0.5">Edits: {selectedOrder.mpesaEditCount}/3</p> : null}
                     <p className={`text-xs font-body mt-1 ${selectedOrder.paymentVerified ? "text-green-600" : "text-amber-500"}`}>
                       {selectedOrder.paymentVerified ? "✓ Payment Verified" : "⚠ Pending Verification"}
                     </p>
@@ -185,7 +180,8 @@ export default function AdminOrders() {
               </div>
             </div>
 
-            <div>
+            {/* Ordered Products */}
+            <div className="mb-6">
               <h3 className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-2">Ordered Products</h3>
               <div className="space-y-2">
                 {selectedOrder.items?.map((item: any, i: number) => (
@@ -200,8 +196,10 @@ export default function AdminOrders() {
               </div>
             </div>
 
+            {/* Actions */}
             <div className="mt-6 pt-4 border-t border-gold/10 space-y-3">
-              {selectedOrder.mpesaCode && !selectedOrder.paymentVerified && (
+              {/* Verify Payment button - shown only when Pending Payment and has mpesaCode */}
+              {selectedOrder.status === "Pending Payment" && selectedOrder.mpesaCode && (
                 <button onClick={() => verifyPayment(selectedOrder.id)} className="w-full bg-green-600 hover:bg-green-700 px-4 py-3 text-[10px] tracking-[0.15em] uppercase text-ivory font-body transition-colors">
                   ✓ Verify Payment & Process Order
                 </button>
