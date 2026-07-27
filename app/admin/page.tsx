@@ -34,18 +34,21 @@ export default function AdminDashboard() {
           pendingOrders: allOrders.filter((o: any) => o.status === "Pending Payment").length,
         });
 
-        const total = allOrders.reduce((s: number, o: any) => s + (o.total || 0), 0);
+        // Only count paid/processed orders for revenue (exclude Pending Payment)
+        const paidOrders = allOrders.filter((o: any) => o.status !== "Pending Payment");
+
+        const total = paidOrders.reduce((s: number, o: any) => s + (o.total || 0), 0);
         setTotalIncome(total);
 
-        const todayOrders = allOrders.filter((o: any) => o.date === todayStr);
-        const monthOrders = allOrders.filter((o: any) => o.date && o.date.startsWith(monthStr));
+        const todayOrders = paidOrders.filter((o: any) => o.date === todayStr);
+        const monthOrders = paidOrders.filter((o: any) => o.date && o.date.startsWith(monthStr));
         setTodayCount(todayOrders.length);
         setMonthCount(monthOrders.length);
         setTodayTotal(todayOrders.reduce((s: number, o: any) => s + (o.total || 0), 0));
         setMonthTotal(monthOrders.reduce((s: number, o: any) => s + (o.total || 0), 0));
 
         const catMap: Record<string, { category: string; total: number; count: number }> = {};
-        for (const order of allOrders) {
+        for (const order of paidOrders) {
           const items = order.items || [];
           for (const item of items) {
             const cat = item.category || "Uncategorized";
