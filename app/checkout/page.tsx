@@ -7,10 +7,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getCartItems, saveCartItems } from "@/lib/firebaseSync";
 import { saveOrderToFirestore } from "@/lib/firebaseSync";
 import { formatKES } from "@/lib/currency";
+import { saveGuestOrder } from "@/lib/guestOrderCache";
 
 interface CartItem {
   id: string; name: string; price: number; image: string; category: string;
   size?: string; color?: string; quantity: number;
+}
+
+function getLocalCart(): CartItem[] {
+  try {
+    const raw = localStorage.getItem("guest_cart");
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function clearLocalCart(): void {
+  try { localStorage.removeItem("guest_cart"); } catch {}
 }
 
 export default function CheckoutPage() {
@@ -20,21 +32,25 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", county: "", town: "", address: "", notes: "" });
   const [submitted, setSubmitted] = useState(false);
   const [orderId, setOrderId] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("mpesa");
-  const [mpesaCode, setMpesaCode] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { triggerGuestModal("checkout"); setLoading(false); return; }
     (async () => {
       setLoading(true);
-      const cart = await getCartItems(user.uid!);
-      if (cart.length === 0) { router.push("/cart"); return; }
-      setItems(cart);
-      setForm(f => ({ ...f, name: user.name || "", email: user.email || "" }));
+      if (user) {
+        const cart = await getCartItems(user.uid!);
+        if (cart.length === 0) { router.push("/cart"); return; }
+        setItems(cart);
+        setForm(f => ({ ...f, name: user.name || "", email: user.email || "" }));
+      } else {
+        // Guest user — read from local cart
+        const localCart = getLocalCart();
+        if (localCart.length === 0) { router.push("/cart"); return; }
+        setItems(localCart);
+      }
       setLoading(false);
     })();
-  }, [user]);
+  }, [user, router]);
 
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
   const shipping = 500;
@@ -42,10 +58,6 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.uid || !mpesaCode.trim()) {
-      alert("Please enter your M-Pesa confirmation code");
-      return;
-    }
     const id = `ORD-${Date.now()}`;
     const order = {
       id,
@@ -64,45 +76,32 @@ export default function CheckoutPage() {
       },
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
       status: "Pending Payment",
-      paymentMethod,
-      mpesaCode: mpesaCode.toUpperCase(),
+      paymentMethod: "mpesa",
       paymentVerified: false,
       verifiedAt: null,
-      userEmail: user?.email || "",
-      userId: user.uid,
+      userEmail: user?.email || form.email,
+      userId: user?.uid || null,
     };
+
     const savedId = await saveOrderToFirestore(order);
-    await saveCartItems(user.uid!, []);
-    window.dispatchEvent(new Event("cart-update"));
+
+    if (user) {
+      await saveCartItems(user.uid!, []);
+      window.dispatchEvent(new Event("cart-update"));
+    } else {
+      // Guest: save to local cache and clear local cart
+      saveGuestOrder(savedId || id, { ...order, id: savedId || id });
+      clearLocalCart();
+    }
+
     setOrderId(savedId || id);
     setSubmitted(true);
+    router.push(`/payment-instructions/${savedId || id}`);
   };
 
   if (loading) return <div className="min-h-screen pt-28 bg-cream dark:bg-[#0F0F0F]" />;
-  if (!user) return null;
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen pt-28 bg-cream dark:bg-[#0F0F0F] flex items-center justify-center px-6">
-        <div className="text-center max-w-md">
-          <div className="text-5xl mb-6">✓</div>
-          <h1 className="font-serif text-3xl font-medium text-charcoal dark:text-[#E8E0D8]">Order Placed</h1>
-          <p className="font-serif text-base text-warm-gray dark:text-[#A09890] mt-3 italic leading-relaxed">
-            Thank you for your order. Your order <strong>{orderId}</strong> has been placed with status <strong>Pending Payment</strong>.
-          </p>
-          <p className="text-xs text-warm-gray font-body mt-4">Admin will verify your M-Pesa code shortly. You can track your order status below.</p>
-          <div className="flex flex-col gap-3 mt-8">
-            <Link href={`/order-status/${orderId}`} className="inline-block bg-gold dark:bg-gold px-8 py-4 text-[10px] tracking-[0.25em] uppercase text-charcoal dark:text-charcoal font-body hover:bg-gold/90 transition-all">
-              Track Order Status
-            </Link>
-            <Link href="/" className="inline-block border border-charcoal dark:border-[#E8E0D8] px-8 py-4 text-[10px] tracking-[0.25em] uppercase text-charcoal dark:text-[#E8E0D8] font-body hover:bg-charcoal/5 transition-all">
-              Continue Shopping
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (submitted) return null; // Will redirect
 
   if (items.length === 0) return null;
 
@@ -152,31 +151,9 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <div className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-8">
-              <h2 className="font-serif text-lg font-medium text-charcoal dark:text-[#E8E0D8] mb-6">Payment Method</h2>
-              <label className="flex items-center gap-3 border border-gold/20 p-4 cursor-pointer hover:border-gold transition-colors">
-                <input type="radio" name="payment" value="mpesa" checked={paymentMethod === "mpesa"} onChange={() => setPaymentMethod("mpesa")} className="accent-charcoal dark:accent-gold" />
-                <div>
-                  <span className="font-serif text-sm text-charcoal dark:text-[#E8E0D8]">M-Pesa</span>
-                  <p className="text-[9px] tracking-[0.15em] uppercase text-warm-gray font-body mt-0.5">Pay via M-Pesa mobile money</p>
-                </div>
-              </label>
-              
-              <div className="mt-6 pt-6 border-t border-gold/10">
-                <label className="block text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-3">M-Pesa Confirmation Code</label>
-                <input 
-                  type="text" 
-                  value={mpesaCode} 
-                  onChange={e => setMpesaCode(e.target.value.toUpperCase())} 
-                  placeholder="Enter code (e.g., ABC123DEF456)"
-                  className="w-full border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-3 text-sm text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold uppercase tracking-widest font-mono" 
-                  required 
-                />
-                <p className="text-[9px] text-warm-gray font-body mt-2">You will receive this code in your M-Pesa message. Admin will verify it before processing.</p>
-              </div>
-            </div>
-
-            <button type="submit" className="w-full bg-charcoal dark:bg-gold py-4 text-[10px] tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body transition-all hover:bg-gold hover:text-charcoal dark:hover:bg-ivory">Place Order — {formatKES(total)}</button>
+            <button type="submit" className="w-full bg-charcoal dark:bg-gold py-4 text-[10px] tracking-[0.25em] uppercase text-ivory dark:text-charcoal font-body transition-all hover:bg-gold hover:text-charcoal dark:hover:bg-ivory">
+              Place Order — {formatKES(total)}
+            </button>
           </form>
           <div className="lg:col-span-2">
             <div className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-8 sticky top-28">
