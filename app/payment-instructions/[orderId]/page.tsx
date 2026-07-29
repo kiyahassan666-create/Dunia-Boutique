@@ -8,12 +8,14 @@ import { db } from "@/lib/firebase";
 import { updateOrderMpesaCode } from "@/lib/firebaseDb";
 import { formatKES } from "@/lib/currency";
 import { useAuth } from "@/contexts/AuthContext";
-import { getGuestOrder, saveGuestOrder, clearGuestOrder } from "@/lib/guestOrderCache";
+import { getGuestOrder, clearGuestOrder } from "@/lib/guestOrderCache";
+import { useBusinessSettings } from "@/lib/useBusinessSettings";
 
 export default function PaymentInstructionsPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const settings = useBusinessSettings();
   const orderId = params?.orderId as string;
 
   const [order, setOrder] = useState<any>(null);
@@ -156,11 +158,11 @@ export default function PaymentInstructionsPage() {
           <div className="space-y-4">
             <div className="border border-gold/10 p-4">
               <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1">M-Pesa Name</p>
-              <p className="font-serif text-lg text-charcoal dark:text-[#E8E0D8]">Halima Maalim</p>
+              <p className="font-serif text-lg text-charcoal dark:text-[#E8E0D8]">{settings.mpesaAccountName}</p>
             </div>
             <div className="border border-gold/10 p-4">
               <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-1">M-Pesa Number</p>
-              <p className="font-serif text-lg text-charcoal dark:text-[#E8E0D8]">0725133957</p>
+              <p className="font-serif text-lg text-charcoal dark:text-[#E8E0D8]">{settings.mpesaNumber}</p>
             </div>
           </div>
 
