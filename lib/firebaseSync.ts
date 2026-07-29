@@ -111,9 +111,5 @@ export async function updateOrderInFirestore(orderId: string, data: any): Promis
     if (idx !== -1) { local[idx] = { ...local[idx], ...data }; cacheSet("orders", local); }
     return;
   }
-  try {
-    await updateDocument("orders", orderId, data);
-  } catch (err) {
-    console.warn("Firestore sync error (update order):", err);
-  }
+  await updateDocument("orders", orderId, data);
 }

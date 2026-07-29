@@ -1,28 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getOrdersFromFirestore, updateOrderInFirestore } from "@/lib/firebaseSync";
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { deleteDocument } from "@/lib/firebaseDb";
 import { formatKES } from "@/lib/currency";
 
 const STATUSES = ["Pending Payment", "Processing", "Delivered", "Cancelled"];
 
 export default function AdminOrders() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
+  // Read status query param on mount
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const all = await getOrdersFromFirestore();
-        setOrders(all);
-      } catch {}
+    const statusParam = searchParams.get("status");
+    if (statusParam) {
+      // Handle comma-separated statuses (e.g. "processing,delivered")
+      if (statusParam.includes(",")) {
+        setStatusFilter("All");
+      } else {
+        const matched = STATUSES.find(s => s.toLowerCase().replace(/\s+/g, "-") === statusParam.toLowerCase());
+        if (matched) setStatusFilter(matched);
+      }
+    }
+  }, [searchParams]);
+
+  // Real-time listener for orders with ordering
+  useEffect(() => {
+    if (!db) {
       setLoading(false);
-    })();
+      return;
+    }
+
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snap) => {
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setOrders(list);
+      setLoading(false);
+    }, () => {
+      setLoading(false);
+    });
+
+    return () => unsub();
   }, []);
 
   const filtered = orders.filter(o => {
@@ -34,36 +61,52 @@ export default function AdminOrders() {
     return matchSearch && matchStatus;
   });
 
-  const updateStatus = async (orderId: string, status: string) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o));
-    try {
-      await updateOrderInFirestore(orderId, { status });
-    } catch {}
-    if (selectedOrder?.id === orderId) setSelectedOrder({ ...selectedOrder, status });
-  };
+  const setErrorWithTimeout = useCallback((msg: string) => {
+    setError(msg);
+    setTimeout(() => setError(""), 5000);
+  }, []);
 
-  const verifyPayment = async (orderId: string) => {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, paymentVerified: true, status: "Processing", verifiedAt: new Date().toISOString() } : o));
+  const verifyAndProcessOrder = useCallback(async (orderId: string) => {
+    if (!db) return;
     try {
-      await updateOrderInFirestore(orderId, { 
-        paymentVerified: true, 
+      await updateDoc(doc(db, "orders", orderId), {
         status: "Processing",
-        verifiedAt: new Date().toISOString()
+        paymentVerified: true,
+        verifiedAt: serverTimestamp(),
       });
-    } catch {}
-    if (selectedOrder?.id === orderId) {
-      setSelectedOrder({ ...selectedOrder, paymentVerified: true, status: "Processing", verifiedAt: new Date().toISOString() });
+    } catch (err: any) {
+      setErrorWithTimeout(`Failed to verify payment: ${err?.message || "Unknown error"}`);
     }
-  };
+  }, [setErrorWithTimeout]);
 
-  const deleteOrder = async (orderId: string) => {
+  const updateStatus = useCallback(async (orderId: string, newStatus: string) => {
+    if (!db) return;
+    try {
+      // When setting to Processing, also verify payment atomically
+      if (newStatus === "Processing") {
+        await updateDoc(doc(db, "orders", orderId), {
+          status: "Processing",
+          paymentVerified: true,
+          verifiedAt: serverTimestamp(),
+        });
+      } else {
+        await updateDoc(doc(db, "orders", orderId), {
+          status: newStatus,
+        });
+      }
+    } catch (err: any) {
+      setErrorWithTimeout(`Failed to update status: ${err?.message || "Unknown error"}`);
+    }
+  }, [setErrorWithTimeout]);
+
+  const deleteOrder = useCallback(async (orderId: string) => {
     if (!confirm("Delete this order?")) return;
-    setOrders(prev => prev.filter(o => o.id !== orderId));
-    if (selectedOrder?.id === orderId) setSelectedOrder(null);
     try {
       await deleteDocument("orders", orderId);
-    } catch {}
-  };
+    } catch (err: any) {
+      setErrorWithTimeout(`Failed to delete order: ${err?.message || "Unknown error"}`);
+    }
+  }, [setErrorWithTimeout]);
 
   const statusBadgeClass = (status: string) => {
     switch (status) {
@@ -83,6 +126,13 @@ export default function AdminOrders() {
         <h1 className="font-serif text-2xl font-medium text-charcoal dark:text-[#E8E0D8]">Orders</h1>
         <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mt-1">{orders.length} orders total</p>
       </div>
+
+      {/* Error Toast */}
+      {error && (
+        <div className="mb-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 px-4 py-3">
+          <p className="text-xs text-red-600 dark:text-red-400 font-body">{error}</p>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3 mb-6">
         <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by order ID or customer..." className="border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-2.5 text-xs text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold font-body flex-1 min-w-[200px]" />
@@ -120,7 +170,7 @@ export default function AdminOrders() {
                     onClick={() => setSelectedOrder(o)}
                     className={`text-[10px] sm:text-[11px] tracking-[0.15em] uppercase font-body px-3 py-1.5 rounded ${statusBadgeClass(o.status)}`}
                   >
-                    View Order
+                    {o.status}
                   </button>
                 </td>
                 <td className="px-3 sm:px-4 py-3 text-[10px] sm:text-[11px] text-warm-gray font-body hidden sm:table-cell whitespace-nowrap">{o.date}</td>
@@ -200,12 +250,16 @@ export default function AdminOrders() {
             <div className="mt-6 pt-4 border-t border-gold/10 space-y-3">
               {/* Verify Payment button - shown only when Pending Payment and has mpesaCode */}
               {selectedOrder.status === "Pending Payment" && selectedOrder.mpesaCode && (
-                <button onClick={() => verifyPayment(selectedOrder.id)} className="w-full bg-green-600 hover:bg-green-700 px-4 py-3 text-[10px] tracking-[0.15em] uppercase text-ivory font-body transition-colors">
+                <button onClick={() => verifyAndProcessOrder(selectedOrder.id)} className="w-full bg-green-600 hover:bg-green-700 px-4 py-3 text-[10px] tracking-[0.15em] uppercase text-ivory font-body transition-colors">
                   ✓ Verify Payment & Process Order
                 </button>
               )}
               <div className="flex gap-3">
-                <select value={selectedOrder.status} onChange={e => { updateStatus(selectedOrder.id, e.target.value); setSelectedOrder({ ...selectedOrder, status: e.target.value }); }} className="flex-1 border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-2.5 text-xs text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold font-body">
+                <select
+                  value={selectedOrder.status}
+                  onChange={e => updateStatus(selectedOrder.id, e.target.value)}
+                  className="flex-1 border border-gold/20 bg-ivory dark:bg-[#0A0A0A] px-4 py-2.5 text-xs text-charcoal dark:text-[#E8E0D8] outline-none focus:border-gold font-body"
+                >
                   {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <button onClick={() => deleteOrder(selectedOrder.id)} className="border border-red-300 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-red-400 font-body hover:bg-red-50 transition-colors">Delete</button>
