@@ -41,7 +41,10 @@ export default function AdminDashboard() {
     );
 
     const unsub = onSnapshot(paidQuery, (snap) => {
-      const paidOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const paidOrders = snap.docs.map(d => {
+        const data = d.data();
+        return { ...data, id: d.id, orderCode: data?.id || data?.orderCode || "" };
+      });
 
       const now = new Date();
       const todayStr = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -82,7 +85,10 @@ export default function AdminDashboard() {
     if (!db) return;
 
     const unsub = onSnapshot(collection(db, "orders"), (snap) => {
-      const allOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const allOrders = snap.docs.map(d => {
+        const data = d.data();
+        return { ...data, id: d.id, orderCode: data?.id || data?.orderCode || "" };
+      });
       setStats(prev => ({
         ...prev,
         orders: allOrders.length,

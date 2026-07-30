@@ -27,13 +27,18 @@ export async function getDocuments<T = any>(
   const colRef = collection(ensureDb(), colName);
   const q = constraints.length ? query(colRef, ...constraints) : colRef;
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as T & { id: string }));
+  return snap.docs.map((d) => {
+    const data = d.data();
+    const raw = data as any;
+    return { ...data, id: d.id, orderCode: raw?.id || raw?.orderCode || "" } as unknown as T & { id: string };
+  });
 }
 
 export async function getDocument<T = any>(colName: string, docId: string): Promise<(T & { id: string }) | null> {
   const docRef = doc(ensureDb(), colName, docId);
   const snap = await getDoc(docRef);
-  return snap.exists() ? ({ id: snap.id, ...snap.data() } as T & { id: string }) : null;
+  const raw = snap.data() as any;
+  return snap.exists() ? ({ ...raw, id: snap.id, orderCode: raw?.id || raw?.orderCode || "" } as unknown as T & { id: string }) : null;
 }
 
 export async function addDocument(colName: string, data: any, id?: string): Promise<string> {

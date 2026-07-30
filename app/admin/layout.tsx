@@ -63,7 +63,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const unsub = onSnapshot(collection(db, "orders"), (snap) => {
       const lastSeenTs = getLastSeen();
       const recent = snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as any))
+        .map(d => {
+          const data = d.data();
+          const raw = data as any;
+          return { ...data, id: d.id, orderCode: raw?.id || raw?.orderCode || "" } as any;
+        })
         .filter(o => {
           if (o.createdAt?.toMillis) {
             return o.createdAt.toMillis() > lastSeenTs;
@@ -154,7 +158,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       className="flex items-center justify-between px-4 py-3 border-b border-gold/5 hover:bg-gold/5 transition-colors"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-serif text-charcoal dark:text-[#E8E0D8] truncate">{o.id}</p>
+                        <p className="text-xs font-serif text-charcoal dark:text-[#E8E0D8] truncate">{o.orderCode || o.id}</p>
                         <p className="text-[9px] text-warm-gray font-body truncate">{o.customer?.name || o.userEmail || "Guest"}</p>
                       </div>
                       <span className="text-xs font-serif text-gold-dark ml-3 whitespace-nowrap">{formatKES(o.total)}</span>

@@ -9,6 +9,7 @@ import { formatKES } from "@/lib/currency";
 
 interface OrderType {
   id: string;
+  orderCode?: string;
   total: number;
   subtotal?: number;
   shipping?: number;
@@ -53,7 +54,9 @@ export default function OrderStatusPage() {
 
     const unsub = onSnapshot(doc(db, "orders", orderId), (snap) => {
       if (snap.exists()) {
-        setOrder({ id: snap.id, ...snap.data() } as OrderType);
+        const data = snap.data();
+        const raw = data as any;
+        setOrder({ ...data, id: snap.id, orderCode: raw?.id || raw?.orderCode || "" } as unknown as OrderType);
       } else {
         setOrder(null);
       }
@@ -103,7 +106,7 @@ export default function OrderStatusPage() {
         {/* Header */}
         <div className="mb-12">
           <h1 className="font-serif text-3xl font-medium text-charcoal dark:text-[#E8E0D8]">Order Status</h1>
-          <p className="text-warm-gray font-body text-sm mt-1">Order ID: {order.id}</p>
+          <p className="text-warm-gray font-body text-sm mt-1">Order ID: {order.orderCode || order.id}</p>
         </div>
 
         {/* Cancelled Banner */}

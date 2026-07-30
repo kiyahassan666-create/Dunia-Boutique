@@ -31,7 +31,8 @@ export default function PaymentInstructionsPage() {
 
     const unsub = onSnapshot(doc(db, "orders", orderId), (snap) => {
       if (snap.exists()) {
-        const data = { id: snap.id, ...snap.data() } as any;
+        const raw = snap.data();
+        const data = { ...raw, id: snap.id, orderCode: raw?.id || raw?.orderCode || "" } as any;
         setOrder(data);
         setEditCount(data.mpesaEditCount || 0);
         if (data.mpesaCode) {
@@ -143,7 +144,7 @@ export default function PaymentInstructionsPage() {
         <div className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-8 mb-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body">Order Number</p>
-            <p className="font-serif text-lg font-medium text-gold-dark">{order.id}</p>
+            <p className="font-serif text-lg font-medium text-gold-dark">{order.orderCode || order.id}</p>
           </div>
           <div className="flex items-center justify-between pt-4 border-t border-gold/10">
             <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body">Total Due</p>

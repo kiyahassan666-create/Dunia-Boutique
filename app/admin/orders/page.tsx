@@ -42,7 +42,10 @@ export default function AdminOrders() {
 
     const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
     const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const list = snap.docs.map(d => {
+        const data = d.data();
+        return { ...data, id: d.id, orderCode: data?.id || data?.orderCode || "" };
+      });
       setOrders(list);
       setLoading(false);
     }, () => {
@@ -54,7 +57,7 @@ export default function AdminOrders() {
 
   const filtered = orders.filter(o => {
     const matchSearch = !search ||
-      o.id?.toLowerCase().includes(search.toLowerCase()) ||
+      (o.orderCode || o.id)?.toLowerCase().includes(search.toLowerCase()) ||
       o.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
       o.userEmail?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "All" || o.status === statusFilter;
@@ -161,7 +164,7 @@ export default function AdminOrders() {
             )}
             {filtered.map(o => (
               <tr key={o.id} className="border-b border-gold/5 hover:bg-gold/5 transition-colors">
-                <td className="px-3 sm:px-4 py-3 font-serif text-sm text-charcoal dark:text-[#E8E0D8] max-w-[80px] sm:max-w-none truncate">{o.id}</td>
+                <td className="px-3 sm:px-4 py-3 font-serif text-sm text-charcoal dark:text-[#E8E0D8] max-w-[80px] sm:max-w-none truncate">{o.orderCode || o.id}</td>
                 <td className="px-3 sm:px-4 py-3 text-xs text-warm-gray font-body max-w-[100px] sm:max-w-none truncate">{o.customer?.name || o.userEmail || "Guest"}</td>
                 <td className="px-3 sm:px-4 py-3 font-serif text-sm text-charcoal dark:text-[#E8E0D8] hidden sm:table-cell">{o.items?.reduce((s: number, i: any) => s + i.quantity, 0) || 0}</td>
                 <td className="px-3 sm:px-4 py-3 font-serif text-sm text-gold-dark whitespace-nowrap">{formatKES(o.total)}</td>
@@ -190,7 +193,7 @@ export default function AdminOrders() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
           <div className="bg-ivory dark:bg-[#0A0A0A] border border-gold/10 p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="font-serif text-xl font-medium text-charcoal dark:text-[#E8E0D8]">{selectedOrder.id}</h2>
+              <h2 className="font-serif text-xl font-medium text-charcoal dark:text-[#E8E0D8]">{selectedOrder.orderCode || selectedOrder.id}</h2>
               <button onClick={() => setSelectedOrder(null)} className="text-warm-gray hover:text-charcoal text-lg">✕</button>
             </div>
 
