@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatKES } from "@/lib/currency";
+import { OrdersProvider, useOrders } from "@/lib/adminContext";
 
 const NAV = [
   { label: "Dashboard", href: "/admin", icon: "◈" },
@@ -33,7 +34,8 @@ function setLastSeen(ts: number): void {
   } catch {}
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+/** Inner component that can access the shared OrdersContext. */
+function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [authed, setAuthed] = useState(false);
@@ -42,6 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [newOrders, setNewOrders] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const bellRef = useRef<HTMLDivElement>(null);
+  const { orders } = useOrders();
 
   useEffect(() => {
     const token = sessionStorage.getItem("admin_token");
@@ -56,36 +59,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setSidebarOpen(false);
   }, [pathname]);
 
-  // Real-time new order notifications
+  // Derive new-order notifications from the shared orders context
   useEffect(() => {
-    if (!db || !authed) return;
+    if (!orders.length) return;
+    const lastSeenTs = getLastSeen();
+    const recent = orders
+      .filter(o => {
+        if ((o as any).createdAt?.toMillis) {
+          return (o as any).createdAt.toMillis() > lastSeenTs;
+        }
+        return false;
+      })
+      .sort((a, b) => {
+        const aTime = (a as any).createdAt?.toMillis ? (a as any).createdAt.toMillis() : 0;
+        const bTime = (b as any).createdAt?.toMillis ? (b as any).createdAt.toMillis() : 0;
+        return bTime - aTime;
+      });
 
-    const unsub = onSnapshot(collection(db, "orders"), (snap) => {
-      const lastSeenTs = getLastSeen();
-      const recent = snap.docs
-        .map(d => {
-          const data = d.data();
-          const raw = data as any;
-          return { ...data, id: d.id, orderCode: raw?.id || raw?.orderCode || "" } as any;
-        })
-        .filter(o => {
-          if (o.createdAt?.toMillis) {
-            return o.createdAt.toMillis() > lastSeenTs;
-          }
-          return false;
-        })
-        .sort((a, b) => {
-          const aTime = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-          const bTime = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-          return bTime - aTime;
-        });
-
-      setNewOrders(recent);
-      setUnreadCount(recent.length);
-    });
-
-    return () => unsub();
-  }, [authed]);
+    setNewOrders(recent);
+    setUnreadCount(recent.length);
+  }, [orders]);
 
   // Mark notifications as seen
   const markAsSeen = useCallback(() => {
@@ -198,5 +191,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </main>
       </div>
     </div>
+  );
+}
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <OrdersProvider>
+      <AdminLayoutInner>{children}</AdminLayoutInner>
+    </OrdersProvider>
   );
 }

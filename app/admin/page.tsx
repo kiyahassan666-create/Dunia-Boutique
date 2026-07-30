@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getDocuments } from "@/lib/firebaseDb";
 import { formatKES } from "@/lib/currency";
+import { orderInDateRange } from "@/lib/dateUtils";
+import { useOrders } from "@/lib/adminContext";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({ products: 0, categories: 7, orders: 0, users: 0, pendingOrders: 0 });
@@ -30,74 +31,48 @@ export default function AdminDashboard() {
     })();
   }, []);
 
-  // Real-time listener for paid orders (revenue tracking)
-  useEffect(() => {
-    if (!db) return;
+  // Derive dashboard stats from the shared orders context (single onSnapshot)
+  const { orders: allOrders, loading: ordersLoading } = useOrders();
 
-    // Only Processing and Delivered orders count as revenue
-    const paidQuery = query(
-      collection(db, "orders"),
-      where("status", "in", ["Processing", "Delivered"])
-    );
+  const paidOrders = useMemo(
+    () => allOrders.filter((o: any) => o.status === "Processing" || o.status === "Delivered"),
+    [allOrders]
+  );
 
-    const unsub = onSnapshot(paidQuery, (snap) => {
-      const paidOrders = snap.docs.map(d => {
-        const data = d.data();
-        return { ...data, id: d.id, orderCode: data?.id || data?.orderCode || "" };
-      });
+  const total = useMemo(() => paidOrders.reduce((s: number, o: any) => s + (o.total || 0), 0), [paidOrders]);
+  const todayOrders = useMemo(() => paidOrders.filter((o: any) => orderInDateRange(o, "today")), [paidOrders]);
+  const monthOrders = useMemo(() => paidOrders.filter((o: any) => orderInDateRange(o, "month")), [paidOrders]);
 
-      const now = new Date();
-      const todayStr = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-      const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const todayTotalVal = useMemo(() => todayOrders.reduce((s: number, o: any) => s + (o.total || 0), 0), [todayOrders]);
+  const monthTotalVal = useMemo(() => monthOrders.reduce((s: number, o: any) => s + (o.total || 0), 0), [monthOrders]);
 
-      const total = paidOrders.reduce((s: number, o: any) => s + (o.total || 0), 0);
-      setTotalIncome(total);
-
-      const todayOrders = paidOrders.filter((o: any) => o.date === todayStr);
-      const monthOrders = paidOrders.filter((o: any) => o.date && o.date.startsWith(monthStr));
-      setTodayCount(todayOrders.length);
-      setMonthCount(monthOrders.length);
-      setTodayTotal(todayOrders.reduce((s: number, o: any) => s + (o.total || 0), 0));
-      setMonthTotal(monthOrders.reduce((s: number, o: any) => s + (o.total || 0), 0));
-
-      const catMap: Record<string, { category: string; total: number; count: number }> = {};
-      for (const order of paidOrders) {
-        const items = (order as any).items || [];
-        for (const item of items) {
-          const cat = item.category || "Uncategorized";
-          if (!catMap[cat]) catMap[cat] = { category: cat, total: 0, count: 0 };
-          catMap[cat].total += (item.price || 0) * (item.quantity || 1);
-          catMap[cat].count += item.quantity || 1;
-        }
+  const catIncome = useMemo(() => {
+    const catMap: Record<string, { category: string; total: number; count: number }> = {};
+    for (const order of paidOrders) {
+      const items = (order as any).items || [];
+      for (const item of items) {
+        const cat = item.category || "Uncategorized";
+        if (!catMap[cat]) catMap[cat] = { category: cat, total: 0, count: 0 };
+        catMap[cat].total += (item.price || 0) * (item.quantity || 1);
+        catMap[cat].count += item.quantity || 1;
       }
-      setCategoryIncome(Object.values(catMap).sort((a, b) => b.total - a.total));
+    }
+    return Object.values(catMap).sort((a, b) => b.total - a.total);
+  }, [paidOrders]);
 
-      setLoaded(true);
-    }, () => {
-      setLoaded(true);
-    });
-
-    return () => unsub();
-  }, []);
-
-  // Real-time listener for ALL orders (for count stats)
+  // Update state reactively when derived values change
+  useEffect(() => { setTotalIncome(total); }, [total]);
+  useEffect(() => { setTodayTotal(todayTotalVal); setTodayCount(todayOrders.length); }, [todayTotalVal, todayOrders.length]);
+  useEffect(() => { setMonthTotal(monthTotalVal); setMonthCount(monthOrders.length); }, [monthTotalVal, monthOrders.length]);
+  useEffect(() => { setCategoryIncome(catIncome); }, [catIncome]);
   useEffect(() => {
-    if (!db) return;
-
-    const unsub = onSnapshot(collection(db, "orders"), (snap) => {
-      const allOrders = snap.docs.map(d => {
-        const data = d.data();
-        return { ...data, id: d.id, orderCode: data?.id || data?.orderCode || "" };
-      });
-      setStats(prev => ({
-        ...prev,
-        orders: allOrders.length,
-        pendingOrders: allOrders.filter((o: any) => o.status === "Pending Payment").length,
-      }));
-    });
-
-    return () => unsub();
-  }, []);
+    setLoaded(!ordersLoading);
+    setStats(prev => ({
+      ...prev,
+      orders: allOrders.length,
+      pendingOrders: allOrders.filter((o: any) => o.status === "Pending Payment").length,
+    }));
+  }, [allOrders.length, ordersLoading]);
 
   const cards = [
     { label: "Total Products", value: stats.products, href: "/admin/products" },
@@ -123,16 +98,16 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-        <div className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-6 text-center">
+        <Link href="/admin/orders?dateRange=today" className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-6 text-center hover:border-gold/30 transition-colors block">
           <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body">Today&apos;s Sales</p>
           <p className="font-serif text-3xl font-medium text-gold-dark mt-2">{loaded ? formatKES(todayTotal) : "—"}</p>
           <p className="text-[9px] text-warm-gray font-body mt-1">{loaded ? `${todayCount} order${todayCount !== 1 ? "s" : ""}` : ""}</p>
-        </div>
-        <div className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-6 text-center">
+        </Link>
+        <Link href="/admin/orders?dateRange=month" className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-6 text-center hover:border-gold/30 transition-colors block">
           <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body">This Month</p>
           <p className="font-serif text-3xl font-medium text-gold-dark mt-2">{loaded ? formatKES(monthTotal) : "—"}</p>
           <p className="text-[9px] text-warm-gray font-body mt-1">{loaded ? `${monthCount} order${monthCount !== 1 ? "s" : ""}` : ""}</p>
-        </div>
+        </Link>
         <Link href="/admin/orders?status=processing%2Cdelivered" className="border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-6 text-center hover:border-gold/30 transition-colors">
           <p className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body">All Time Revenue</p>
           <p className="font-serif text-3xl font-medium text-gold-dark mt-2">{loaded ? formatKES(totalIncome) : "—"}</p>

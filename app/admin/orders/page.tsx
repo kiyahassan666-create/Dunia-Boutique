@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { deleteDocument } from "@/lib/firebaseDb";
 import { formatKES } from "@/lib/currency";
+import { orderInDateRange, dateRangeLabel } from "@/lib/dateUtils";
+import { useOrders } from "@/lib/adminContext";
 
 const STATUSES = ["Pending Payment", "Processing", "Delivered", "Cancelled"];
 
@@ -15,15 +17,15 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [dateRange, setDateRange] = useState<"today" | "month" | null>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Read status query param on mount
+  // Read query params on mount
   useEffect(() => {
     const statusParam = searchParams.get("status");
     if (statusParam) {
-      // Handle comma-separated statuses (e.g. "processing,delivered")
       if (statusParam.includes(",")) {
         setStatusFilter("All");
       } else {
@@ -31,29 +33,25 @@ export default function AdminOrders() {
         if (matched) setStatusFilter(matched);
       }
     }
+    const dateParam = searchParams.get("dateRange");
+    if (dateParam === "today" || dateParam === "month") {
+      setDateRange(dateParam);
+    }
   }, [searchParams]);
 
-  // Real-time listener for orders with ordering
+  // Read orders from the shared context (single onSnapshot at the layout level)
+  const { orders: ctxOrders, loading: ctxLoading } = useOrders();
+
   useEffect(() => {
-    if (!db) {
-      setLoading(false);
-      return;
-    }
+    setOrders(ctxOrders);
+    setLoading(ctxLoading);
+  }, [ctxOrders, ctxLoading]);
 
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map(d => {
-        const data = d.data();
-        return { ...data, id: d.id, orderCode: data?.id || data?.orderCode || "" };
-      });
-      setOrders(list);
-      setLoading(false);
-    }, () => {
-      setLoading(false);
-    });
-
-    return () => unsub();
-  }, []);
+  // Derive selected order from the live orders array so the modal stays reactive
+  const selectedOrder = useMemo(
+    () => (selectedOrderId ? ctxOrders.find(o => o.id === selectedOrderId) || null : null),
+    [selectedOrderId, ctxOrders]
+  );
 
   const filtered = orders.filter(o => {
     const matchSearch = !search ||
@@ -61,7 +59,8 @@ export default function AdminOrders() {
       o.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
       o.userEmail?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "All" || o.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchDate = !dateRange || orderInDateRange(o, dateRange);
+    return matchSearch && matchStatus && matchDate;
   });
 
   const setErrorWithTimeout = useCallback((msg: string) => {
@@ -76,6 +75,7 @@ export default function AdminOrders() {
         status: "Processing",
         paymentVerified: true,
         verifiedAt: serverTimestamp(),
+        deliveryConfirmedBy: "admin",
       });
     } catch (err: any) {
       setErrorWithTimeout(`Failed to verify payment: ${err?.message || "Unknown error"}`);
@@ -85,22 +85,25 @@ export default function AdminOrders() {
   const updateStatus = useCallback(async (orderId: string, newStatus: string) => {
     if (!db) return;
     try {
-      // When setting to Processing, also verify payment atomically
       if (newStatus === "Processing") {
+        await verifyAndProcessOrder(orderId);
+      } else if (newStatus === "Delivered") {
         await updateDoc(doc(db, "orders", orderId), {
-          status: "Processing",
-          paymentVerified: true,
-          verifiedAt: serverTimestamp(),
+          status: "Delivered",
+          deliveredAt: serverTimestamp(),
+          deliveryConfirmedBy: "admin",
         });
       } else {
+        // Any other status change (Cancelled, Pending Payment) records admin as actor
         await updateDoc(doc(db, "orders", orderId), {
           status: newStatus,
+          deliveryConfirmedBy: "admin",
         });
       }
     } catch (err: any) {
       setErrorWithTimeout(`Failed to update status: ${err?.message || "Unknown error"}`);
     }
-  }, [setErrorWithTimeout]);
+  }, [setErrorWithTimeout, verifyAndProcessOrder]);
 
   const deleteOrder = useCallback(async (orderId: string) => {
     if (!confirm("Delete this order?")) return;
@@ -145,6 +148,22 @@ export default function AdminOrders() {
         </select>
       </div>
 
+      {/* Active date filter chip */}
+      {dateRange && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="inline-flex items-center gap-2 bg-gold/10 border border-gold/20 px-3 py-1.5 text-[10px] tracking-[0.15em] uppercase text-gold-dark font-body">
+            Showing: {dateRangeLabel(dateRange)}&apos;s paid orders
+            <button
+              onClick={() => { setDateRange(null); router.replace("/admin/orders"); }}
+              className="ml-1 hover:text-charcoal transition-colors text-xs leading-none"
+              aria-label="Clear date filter"
+            >
+              ✕
+            </button>
+          </span>
+        </div>
+      )}
+
       <div className="border border-gold/10 overflow-x-auto -mx-4 sm:mx-0">
         <table className="w-full text-left min-w-[550px]">
           <thead>
@@ -170,7 +189,7 @@ export default function AdminOrders() {
                 <td className="px-3 sm:px-4 py-3 font-serif text-sm text-gold-dark whitespace-nowrap">{formatKES(o.total)}</td>
                 <td className="px-3 sm:px-4 py-3">
                   <button
-                    onClick={() => setSelectedOrder(o)}
+                    onClick={() => setSelectedOrderId(o.id)}
                     className={`text-[10px] sm:text-[11px] tracking-[0.15em] uppercase font-body px-3 py-1.5 rounded ${statusBadgeClass(o.status)}`}
                   >
                     {o.status}
@@ -179,7 +198,7 @@ export default function AdminOrders() {
                 <td className="px-3 sm:px-4 py-3 text-[10px] sm:text-[11px] text-warm-gray font-body hidden sm:table-cell whitespace-nowrap">{o.date}</td>
                 <td className="px-3 sm:px-4 py-3">
                   <div className="flex gap-3 items-center min-h-[36px]">
-                    <button onClick={() => setSelectedOrder(o)} className="text-[11px] tracking-[0.15em] uppercase text-gold-dark font-body hover:text-gold transition-colors py-1">View</button>
+                    <button onClick={() => setSelectedOrderId(o.id)} className="text-[11px] tracking-[0.15em] uppercase text-gold-dark font-body hover:text-gold transition-colors py-1">View</button>
                     <button onClick={() => deleteOrder(o.id)} className="text-[11px] tracking-[0.15em] uppercase text-red-400 font-body hover:text-red-500 transition-colors py-1">Delete</button>
                   </div>
                 </td>
@@ -194,7 +213,7 @@ export default function AdminOrders() {
           <div className="bg-ivory dark:bg-[#0A0A0A] border border-gold/10 p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-xl font-medium text-charcoal dark:text-[#E8E0D8]">{selectedOrder.orderCode || selectedOrder.id}</h2>
-              <button onClick={() => setSelectedOrder(null)} className="text-warm-gray hover:text-charcoal text-lg">✕</button>
+              <button onClick={() => setSelectedOrderId(null)} className="text-warm-gray hover:text-charcoal text-lg">✕</button>
             </div>
 
             {/* Customer Details */}
@@ -216,7 +235,14 @@ export default function AdminOrders() {
               <h3 className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-2">Order Details</h3>
               <div className="border border-gold/10 p-4 space-y-1.5">
                 <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Date:</span> {selectedOrder.date}</p>
-                <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Status:</span> <span className={`font-medium ${selectedOrder.status === "Delivered" ? "text-green-600" : selectedOrder.status === "Cancelled" ? "text-red-400" : selectedOrder.status === "Pending Payment" ? "text-amber-500" : "text-blue-600"}`}>{selectedOrder.status}</span></p>
+                <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Status:</span> <span className={`font-medium ${selectedOrder.status === "Delivered" ? "text-green-600" : selectedOrder.status === "Cancelled" ? "text-red-400" : selectedOrder.status === "Pending Payment" ? "text-amber-500" : "text-blue-600"}`}>{selectedOrder.status}</span>
+                  {selectedOrder.deliveryConfirmedBy && selectedOrder.status === "Delivered" && (
+                    <span className="text-[9px] text-warm-gray ml-2">
+                      — confirmed by {selectedOrder.deliveryConfirmedBy}
+                      {selectedOrder.deliveredAt?.toDate ? `, ${selectedOrder.deliveredAt.toDate().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : ""}
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Payment:</span> {selectedOrder.paymentMethod || "—"}</p>
                 {selectedOrder.mpesaCode && (
                   <div className="pt-2 border-t border-gold/10">
@@ -251,11 +277,21 @@ export default function AdminOrders() {
 
             {/* Actions */}
             <div className="mt-6 pt-4 border-t border-gold/10 space-y-3">
-              {/* Verify Payment button - shown only when Pending Payment and has mpesaCode */}
-              {selectedOrder.status === "Pending Payment" && selectedOrder.mpesaCode && (
-                <button onClick={() => verifyAndProcessOrder(selectedOrder.id)} className="w-full bg-green-600 hover:bg-green-700 px-4 py-3 text-[10px] tracking-[0.15em] uppercase text-ivory font-body transition-colors">
-                  ✓ Verify Payment & Process Order
-                </button>
+              {/* Verify Payment button - always shown for Pending Payment orders */}
+              {selectedOrder.status === "Pending Payment" && (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => verifyAndProcessOrder(selectedOrder.id)}
+                    className="w-full bg-green-600 hover:bg-green-700 px-4 py-3 text-[10px] tracking-[0.15em] uppercase text-ivory font-body transition-colors"
+                  >
+                    ✓ Verify Payment & Process Order
+                  </button>
+                  {!selectedOrder.mpesaCode && (
+                    <p className="text-[9px] text-amber-500 font-body text-center">
+                      No M-Pesa code submitted yet — verify manually?
+                    </p>
+                  )}
+                </div>
               )}
               <div className="flex gap-3">
                 <select
@@ -266,7 +302,7 @@ export default function AdminOrders() {
                   {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <button onClick={() => deleteOrder(selectedOrder.id)} className="border border-red-300 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-red-400 font-body hover:bg-red-50 transition-colors">Delete</button>
-                <button onClick={() => setSelectedOrder(null)} className="border border-gold/20 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-warm-gray font-body hover:text-charcoal transition-colors">Close</button>
+                <button onClick={() => setSelectedOrderId(null)} className="border border-gold/20 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-warm-gray font-body hover:text-charcoal transition-colors">Close</button>
               </div>
             </div>
           </div>

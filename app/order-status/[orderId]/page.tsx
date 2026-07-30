@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatKES } from "@/lib/currency";
 
@@ -19,6 +19,8 @@ interface OrderType {
   mpesaEditCount?: number;
   paymentVerified: boolean;
   verifiedAt?: string;
+  deliveredAt?: any;
+  deliveryConfirmedBy?: string;
   customer: {
     name: string;
     email: string;
@@ -45,6 +47,8 @@ export default function OrderStatusPage() {
   const orderId = params?.orderId as string;
   const [order, setOrder] = useState<OrderType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [confirmingDelivery, setConfirmingDelivery] = useState(false);
+  const [submittingDelivery, setSubmittingDelivery] = useState(false);
 
   useEffect(() => {
     if (!orderId || !db) {
@@ -68,6 +72,23 @@ export default function OrderStatusPage() {
 
     return () => unsub();
   }, [orderId]);
+
+  const handleMarkAsDelivered = async () => {
+    if (!db || !order) return;
+    setSubmittingDelivery(true);
+    try {
+      await updateDoc(doc(db, "orders", order.id), {
+        status: "Delivered",
+        deliveredAt: serverTimestamp(),
+        deliveryConfirmedBy: "customer",
+      });
+      setConfirmingDelivery(false);
+    } catch (err) {
+      console.error("Failed to mark as delivered:", err);
+    } finally {
+      setSubmittingDelivery(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -144,6 +165,47 @@ export default function OrderStatusPage() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* Mark as Delivered — only shown when order is in "Processing" state */}
+        {!isCancelled && order.status === "Processing" && (
+          <div className="mb-8 border border-gold/10 bg-ivory dark:bg-[#0A0A0A] p-8">
+            <h3 className="font-serif text-lg font-medium text-charcoal dark:text-[#E8E0D8] mb-2">Received Your Order?</h3>
+            <p className="text-sm text-warm-gray font-body mb-4">
+              If you have received your order, you can mark it as delivered below.
+            </p>
+
+            {!confirmingDelivery ? (
+              <button
+                onClick={() => setConfirmingDelivery(true)}
+                className="w-full bg-green-600 hover:bg-green-700 px-6 py-3 text-[10px] tracking-[0.2em] uppercase text-ivory font-body transition-colors"
+              >
+                ✓ I've Received My Order — Mark as Delivered
+              </button>
+            ) : (
+              <div className="border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-4 space-y-3">
+                <p className="text-sm text-amber-800 dark:text-amber-300 font-body">
+                  Confirm you've received your order? This will mark it as delivered.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleMarkAsDelivered}
+                    disabled={submittingDelivery}
+                    className="flex-1 bg-green-600 hover:bg-green-700 disabled:opacity-40 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-ivory font-body transition-colors"
+                  >
+                    {submittingDelivery ? "Confirming..." : "Confirm"}
+                  </button>
+                  <button
+                    onClick={() => setConfirmingDelivery(false)}
+                    disabled={submittingDelivery}
+                    className="flex-1 border border-gold/20 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-warm-gray font-body hover:text-charcoal transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -233,6 +295,11 @@ export default function OrderStatusPage() {
             }`}>
               {order.status}
             </div>
+            {order.status === "Delivered" && order.deliveryConfirmedBy && (
+              <p className="text-[9px] text-center text-warm-gray font-body mt-1">
+                Confirmed by {order.deliveryConfirmedBy}
+              </p>
+            )}
           </div>
         </div>
 
