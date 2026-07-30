@@ -1,4 +1,4 @@
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as fbSignOut, updateProfile, sendPasswordResetEmail as fbSendReset } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut as fbSignOut, updateProfile, sendPasswordResetEmail as fbSendReset, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
 import { auth } from "./firebase";
 
 function requireAuth() {
@@ -38,4 +38,25 @@ export async function sendPasswordResetEmail(email: string) {
   console.log("[Firebase Auth] sendPasswordResetEmail called for:", email);
   await fbSendReset(a, email);
   console.log("[Firebase Auth] reset email sent");
+}
+
+/**
+ * Re-authenticates the current user with their current password, then updates
+ * to a new password. Requires that the user is currently signed in via Firebase Auth.
+ *
+ * Throws if:
+ *  - No user is signed in
+ *  - currentPassword is wrong (auth/invalid-credential)
+ *  - newPassword is too weak (auth/weak-password)
+ *  - Session is too old (auth/requires-recent-login) — reauthentication handles this
+ */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const a = requireAuth();
+  const user = a.currentUser;
+  if (!user || !user.email) throw new Error("No authenticated user");
+
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+  await updatePassword(user, newPassword);
+  console.log("[Firebase Auth] password changed successfully");
 }
