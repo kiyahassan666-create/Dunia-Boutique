@@ -130,7 +130,7 @@ export default function CheckoutPage() {
 
     // Build the order
     const order = {
-      id,
+      orderCode: id,
       items,
       subtotal,
       shipping,
