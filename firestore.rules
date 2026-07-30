@@ -1,10 +1,71 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow all reads (guests browse products, categories, etc.)
-    // Allow all writes (admin uses hardcoded session auth, not Firebase Auth)
-    match /{document=**} {
-      allow read, write: if true;
+
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Admins collection: never publicly readable/listable (avoid UID enumeration).
+    // An admin may read their OWN doc to confirm role; only backend/Console writes here.
+    match /admins/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
+    // Storefront content: public read, admin-only write.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /websiteImages/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Business settings (name, mpesa number, shipping zones): public read (checkout needs it), admin-only write.
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Orders: guest checkout can create; guest tracking can read;
+    // only admin can verify payment/change status/delete —
+    // EXCEPT the narrow customer "mark as delivered" case.
+    match /orders/{orderId} {
+      allow create: if true; // guest checkout, no account required
+      allow read: if true;   // needed for guest order tracking lookups
+      allow update: if isAdmin()
+        || (
+          // Customer self-service delivery confirmation:
+          // only allowed to flip processing -> delivered, and only touch delivery-related fields.
+          resource.data.status == 'processing'
+          && request.resource.data.status == 'delivered'
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'deliveredAt', 'deliveryConfirmedBy'])
+        );
+      allow delete: if isAdmin();
+    }
+
+    // Registered customer accounts (from the optional-account checkout feature).
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow delete: if isAdmin();
+      allow list: if isAdmin();
+    }
+
+    // Carts and wishlists: private to each authenticated user.
+    match /carts/{cartId} {
+      allow read, write: if request.auth != null && request.auth.uid == cartId;
+    }
+    match /wishlists/{wishlistId} {
+      allow read, write: if request.auth != null && request.auth.uid == wishlistId;
     }
   }
 }
