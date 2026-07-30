@@ -2,10 +2,12 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { deleteDocument } from "@/lib/firebaseDb";
 import { formatKES } from "@/lib/currency";
+import { orderInDateRange, dateRangeLabel } from "@/lib/dateUtils";
+import { useOrders } from "@/lib/adminContext";
 
 const STATUSES = ["Pending Payment", "Processing", "Delivered", "Cancelled"];
 
@@ -15,15 +17,15 @@ export default function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [dateRange, setDateRange] = useState<"today" | "month" | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Read status query param on mount
+  // Read query params on mount
   useEffect(() => {
     const statusParam = searchParams.get("status");
     if (statusParam) {
-      // Handle comma-separated statuses (e.g. "processing,delivered")
       if (statusParam.includes(",")) {
         setStatusFilter("All");
       } else {
@@ -31,29 +33,19 @@ export default function AdminOrders() {
         if (matched) setStatusFilter(matched);
       }
     }
+    const dateParam = searchParams.get("dateRange");
+    if (dateParam === "today" || dateParam === "month") {
+      setDateRange(dateParam);
+    }
   }, [searchParams]);
 
-  // Real-time listener for orders with ordering
+  // Read orders from the shared context (single onSnapshot at the layout level)
+  const { orders: ctxOrders, loading: ctxLoading } = useOrders();
+
   useEffect(() => {
-    if (!db) {
-      setLoading(false);
-      return;
-    }
-
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snap) => {
-      const list = snap.docs.map(d => {
-        const data = d.data();
-        return { ...data, id: d.id, orderCode: data?.id || data?.orderCode || "" };
-      });
-      setOrders(list);
-      setLoading(false);
-    }, () => {
-      setLoading(false);
-    });
-
-    return () => unsub();
-  }, []);
+    setOrders(ctxOrders);
+    setLoading(ctxLoading);
+  }, [ctxOrders, ctxLoading]);
 
   const filtered = orders.filter(o => {
     const matchSearch = !search ||
@@ -61,7 +53,8 @@ export default function AdminOrders() {
       o.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
       o.userEmail?.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "All" || o.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchDate = !dateRange || orderInDateRange(o, dateRange);
+    return matchSearch && matchStatus && matchDate;
   });
 
   const setErrorWithTimeout = useCallback((msg: string) => {
@@ -85,13 +78,9 @@ export default function AdminOrders() {
   const updateStatus = useCallback(async (orderId: string, newStatus: string) => {
     if (!db) return;
     try {
-      // When setting to Processing, also verify payment atomically
+      // When setting to Processing, use the consolidated verify path
       if (newStatus === "Processing") {
-        await updateDoc(doc(db, "orders", orderId), {
-          status: "Processing",
-          paymentVerified: true,
-          verifiedAt: serverTimestamp(),
-        });
+        await verifyAndProcessOrder(orderId);
       } else {
         await updateDoc(doc(db, "orders", orderId), {
           status: newStatus,
@@ -100,7 +89,7 @@ export default function AdminOrders() {
     } catch (err: any) {
       setErrorWithTimeout(`Failed to update status: ${err?.message || "Unknown error"}`);
     }
-  }, [setErrorWithTimeout]);
+  }, [setErrorWithTimeout, verifyAndProcessOrder]);
 
   const deleteOrder = useCallback(async (orderId: string) => {
     if (!confirm("Delete this order?")) return;
@@ -144,6 +133,22 @@ export default function AdminOrders() {
           {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
+
+      {/* Active date filter chip */}
+      {dateRange && (
+        <div className="mb-4 flex items-center gap-2">
+          <span className="inline-flex items-center gap-2 bg-gold/10 border border-gold/20 px-3 py-1.5 text-[10px] tracking-[0.15em] uppercase text-gold-dark font-body">
+            Showing: {dateRangeLabel(dateRange)}&apos;s paid orders
+            <button
+              onClick={() => { setDateRange(null); router.replace("/admin/orders"); }}
+              className="ml-1 hover:text-charcoal transition-colors text-xs leading-none"
+              aria-label="Clear date filter"
+            >
+              ✕
+            </button>
+          </span>
+        </div>
+      )}
 
       <div className="border border-gold/10 overflow-x-auto -mx-4 sm:mx-0">
         <table className="w-full text-left min-w-[550px]">
@@ -251,11 +256,21 @@ export default function AdminOrders() {
 
             {/* Actions */}
             <div className="mt-6 pt-4 border-t border-gold/10 space-y-3">
-              {/* Verify Payment button - shown only when Pending Payment and has mpesaCode */}
-              {selectedOrder.status === "Pending Payment" && selectedOrder.mpesaCode && (
-                <button onClick={() => verifyAndProcessOrder(selectedOrder.id)} className="w-full bg-green-600 hover:bg-green-700 px-4 py-3 text-[10px] tracking-[0.15em] uppercase text-ivory font-body transition-colors">
-                  ✓ Verify Payment & Process Order
-                </button>
+              {/* Verify Payment button - always shown for Pending Payment orders */}
+              {selectedOrder.status === "Pending Payment" && (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => verifyAndProcessOrder(selectedOrder.id)}
+                    className="w-full bg-green-600 hover:bg-green-700 px-4 py-3 text-[10px] tracking-[0.15em] uppercase text-ivory font-body transition-colors"
+                  >
+                    ✓ Verify Payment & Process Order
+                  </button>
+                  {!selectedOrder.mpesaCode && (
+                    <p className="text-[9px] text-amber-500 font-body text-center">
+                      No M-Pesa code submitted yet — verify manually?
+                    </p>
+                  )}
+                </div>
               )}
               <div className="flex gap-3">
                 <select
