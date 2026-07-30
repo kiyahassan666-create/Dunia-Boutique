@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -18,7 +18,7 @@ export default function AdminOrders() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [dateRange, setDateRange] = useState<"today" | "month" | null>(null);
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -47,6 +47,12 @@ export default function AdminOrders() {
     setLoading(ctxLoading);
   }, [ctxOrders, ctxLoading]);
 
+  // Derive selected order from the live orders array so the modal stays reactive
+  const selectedOrder = useMemo(
+    () => (selectedOrderId ? ctxOrders.find(o => o.id === selectedOrderId) || null : null),
+    [selectedOrderId, ctxOrders]
+  );
+
   const filtered = orders.filter(o => {
     const matchSearch = !search ||
       (o.orderCode || o.id)?.toLowerCase().includes(search.toLowerCase()) ||
@@ -69,6 +75,7 @@ export default function AdminOrders() {
         status: "Processing",
         paymentVerified: true,
         verifiedAt: serverTimestamp(),
+        deliveryConfirmedBy: "admin",
       });
     } catch (err: any) {
       setErrorWithTimeout(`Failed to verify payment: ${err?.message || "Unknown error"}`);
@@ -78,12 +85,19 @@ export default function AdminOrders() {
   const updateStatus = useCallback(async (orderId: string, newStatus: string) => {
     if (!db) return;
     try {
-      // When setting to Processing, use the consolidated verify path
       if (newStatus === "Processing") {
         await verifyAndProcessOrder(orderId);
+      } else if (newStatus === "Delivered") {
+        await updateDoc(doc(db, "orders", orderId), {
+          status: "Delivered",
+          deliveredAt: serverTimestamp(),
+          deliveryConfirmedBy: "admin",
+        });
       } else {
+        // Any other status change (Cancelled, Pending Payment) records admin as actor
         await updateDoc(doc(db, "orders", orderId), {
           status: newStatus,
+          deliveryConfirmedBy: "admin",
         });
       }
     } catch (err: any) {
@@ -175,7 +189,7 @@ export default function AdminOrders() {
                 <td className="px-3 sm:px-4 py-3 font-serif text-sm text-gold-dark whitespace-nowrap">{formatKES(o.total)}</td>
                 <td className="px-3 sm:px-4 py-3">
                   <button
-                    onClick={() => setSelectedOrder(o)}
+                    onClick={() => setSelectedOrderId(o.id)}
                     className={`text-[10px] sm:text-[11px] tracking-[0.15em] uppercase font-body px-3 py-1.5 rounded ${statusBadgeClass(o.status)}`}
                   >
                     {o.status}
@@ -184,7 +198,7 @@ export default function AdminOrders() {
                 <td className="px-3 sm:px-4 py-3 text-[10px] sm:text-[11px] text-warm-gray font-body hidden sm:table-cell whitespace-nowrap">{o.date}</td>
                 <td className="px-3 sm:px-4 py-3">
                   <div className="flex gap-3 items-center min-h-[36px]">
-                    <button onClick={() => setSelectedOrder(o)} className="text-[11px] tracking-[0.15em] uppercase text-gold-dark font-body hover:text-gold transition-colors py-1">View</button>
+                    <button onClick={() => setSelectedOrderId(o.id)} className="text-[11px] tracking-[0.15em] uppercase text-gold-dark font-body hover:text-gold transition-colors py-1">View</button>
                     <button onClick={() => deleteOrder(o.id)} className="text-[11px] tracking-[0.15em] uppercase text-red-400 font-body hover:text-red-500 transition-colors py-1">Delete</button>
                   </div>
                 </td>
@@ -199,7 +213,7 @@ export default function AdminOrders() {
           <div className="bg-ivory dark:bg-[#0A0A0A] border border-gold/10 p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-serif text-xl font-medium text-charcoal dark:text-[#E8E0D8]">{selectedOrder.orderCode || selectedOrder.id}</h2>
-              <button onClick={() => setSelectedOrder(null)} className="text-warm-gray hover:text-charcoal text-lg">✕</button>
+              <button onClick={() => setSelectedOrderId(null)} className="text-warm-gray hover:text-charcoal text-lg">✕</button>
             </div>
 
             {/* Customer Details */}
@@ -221,7 +235,14 @@ export default function AdminOrders() {
               <h3 className="text-[10px] tracking-[0.2em] uppercase text-warm-gray font-body mb-2">Order Details</h3>
               <div className="border border-gold/10 p-4 space-y-1.5">
                 <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Date:</span> {selectedOrder.date}</p>
-                <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Status:</span> <span className={`font-medium ${selectedOrder.status === "Delivered" ? "text-green-600" : selectedOrder.status === "Cancelled" ? "text-red-400" : selectedOrder.status === "Pending Payment" ? "text-amber-500" : "text-blue-600"}`}>{selectedOrder.status}</span></p>
+                <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Status:</span> <span className={`font-medium ${selectedOrder.status === "Delivered" ? "text-green-600" : selectedOrder.status === "Cancelled" ? "text-red-400" : selectedOrder.status === "Pending Payment" ? "text-amber-500" : "text-blue-600"}`}>{selectedOrder.status}</span>
+                  {selectedOrder.deliveryConfirmedBy && selectedOrder.status === "Delivered" && (
+                    <span className="text-[9px] text-warm-gray ml-2">
+                      — confirmed by {selectedOrder.deliveryConfirmedBy}
+                      {selectedOrder.deliveredAt?.toDate ? `, ${selectedOrder.deliveredAt.toDate().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : ""}
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs font-body text-charcoal dark:text-[#E8E0D8]"><span className="text-warm-gray">Payment:</span> {selectedOrder.paymentMethod || "—"}</p>
                 {selectedOrder.mpesaCode && (
                   <div className="pt-2 border-t border-gold/10">
@@ -281,7 +302,7 @@ export default function AdminOrders() {
                   {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
                 <button onClick={() => deleteOrder(selectedOrder.id)} className="border border-red-300 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-red-400 font-body hover:bg-red-50 transition-colors">Delete</button>
-                <button onClick={() => setSelectedOrder(null)} className="border border-gold/20 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-warm-gray font-body hover:text-charcoal transition-colors">Close</button>
+                <button onClick={() => setSelectedOrderId(null)} className="border border-gold/20 px-4 py-2.5 text-[10px] tracking-[0.15em] uppercase text-warm-gray font-body hover:text-charcoal transition-colors">Close</button>
               </div>
             </div>
           </div>
