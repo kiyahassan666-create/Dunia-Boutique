@@ -3,8 +3,9 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, query, where, onSnapshot, doc, getDoc } from "firebase/firestore";
+import { onAuthStateChanged, signOut as fbSignOut } from "firebase/auth";
+import { db, auth } from "@/lib/firebase";
 import { formatKES } from "@/lib/currency";
 import { OrdersProvider, useOrders } from "@/lib/adminContext";
 
@@ -38,7 +39,7 @@ function setLastSeen(ts: number): void {
 function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [authed, setAuthed] = useState(false);
+  const [authState, setAuthState] = useState<"loading" | "authorized" | "denied">("loading");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [newOrders, setNewOrders] = useState<any[]>([]);
@@ -46,13 +47,47 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   const bellRef = useRef<HTMLDivElement>(null);
   const { orders } = useOrders();
 
+  // Single auth flow: Firebase Auth → admins collection → grant/deny
   useEffect(() => {
-    const token = sessionStorage.getItem("admin_token");
-    if (!token && pathname !== "/admin/login") {
-      router.replace("/admin/login");
-    } else if (token) {
-      setAuthed(true);
+    // Login page doesn't need guarding
+    if (pathname === "/admin/login") {
+      setAuthState("authorized");
+      return;
     }
+
+    if (!auth) {
+      router.replace("/admin/login");
+      return;
+    }
+
+    const unsub = onAuthStateChanged(auth, async (fbUser) => {
+      if (!fbUser) {
+        setAuthState("denied");
+        router.replace("/admin/login");
+        return;
+      }
+
+      // User is signed into Firebase Auth — verify they're an admin
+      try {
+        if (db) {
+          const adminSnap = await getDoc(doc(db, "admins", fbUser.uid));
+          if (!adminSnap.exists()) {
+            // Signed in but not in admins collection — revoke and redirect
+            if (auth) await fbSignOut(auth);
+            setAuthState("denied");
+            router.replace("/admin/login");
+            return;
+          }
+        }
+        setAuthState("authorized");
+      } catch {
+        // If Firestore check fails (e.g. network), default to denied
+        setAuthState("denied");
+        router.replace("/admin/login");
+      }
+    });
+
+    return () => unsub();
   }, [pathname, router]);
 
   useEffect(() => {
@@ -99,7 +134,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   }, []);
 
   if (pathname === "/admin/login") return <>{children}</>;
-  if (!authed) return null;
+  if (authState !== "authorized") return null;
 
   return (
     <div className="min-h-screen bg-[#FAF5F0] dark:bg-[#0F0F0F]">
