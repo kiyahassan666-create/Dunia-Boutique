@@ -29,7 +29,7 @@ export default function BagsPage() {
   }, []);
   return (
     <>
-      <section className="relative h-[50vh] min-h-[380px] w-full">
+      <section className="relative h-[32vh] min-h-[260px] sm:h-[38vh] sm:min-h-[300px] lg:h-[50vh] lg:min-h-[380px] w-full">
         {heroImage && (
           <SafeImage
             src={heroImage}
@@ -43,28 +43,31 @@ export default function BagsPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/40" />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center max-w-xl px-6">
-            <span className="inline-block text-[10px] tracking-[0.35em] uppercase text-gold-light font-body mb-5">
+            <span className="hidden sm:inline-block text-[10px] tracking-[0.35em] uppercase text-gold-light font-body mb-5">
               Maison Dunia — Accessories
             </span>
-            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-medium text-ivory leading-tight">
+            <h1 className="font-serif text-2xl sm:text-5xl lg:text-6xl font-medium text-ivory leading-tight">
               Luxury Bags
             </h1>
-            <div className="mx-auto mt-5 h-px w-12 bg-gold/50" />
-            <p className="mt-5 max-w-md mx-auto font-serif text-base leading-relaxed text-ivory/70 italic">
+            <div className="hidden sm:block mx-auto mt-5 h-px w-12 bg-gold/50" />
+            <p className="hidden sm:block mt-5 max-w-md mx-auto font-serif text-base leading-relaxed text-ivory/70 italic">
               Sophisticated handbags and clutches crafted for the confident, modest woman.
             </p>
           </div>
         </div>
       </section>
 
-      <section className="px-6 py-20 lg:px-12 lg:py-28">
+      <section className="px-6 py-10 sm:py-16 lg:px-12 lg:py-28">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-12 flex items-center justify-between border-b border-gold/10 pb-4">
-            <span className="font-serif text-sm text-warm-gray dark:text-[#A09890]">
-              <span className="text-charcoal dark:text-[#E8E0D8]">{products.length}</span> styles
+          <div className="mb-8 sm:mb-12">
+            <span className="inline-block text-[10px] tracking-[0.35em] uppercase text-gold-dark font-medium font-body mb-3">
+              Welcome
             </span>
+            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-medium text-charcoal dark:text-[#E8E0D8] leading-tight">
+              Luxury Bags Products
+            </h2>
           </div>
-          <div className="grid grid-cols-1 gap-px bg-gold/10 dark:bg-gold/5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
             {products.map((product, i) => (
               <ProductCard key={product.id} product={product} priority={i < 3} />
             ))}
