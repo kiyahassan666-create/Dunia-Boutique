@@ -70,12 +70,12 @@ export function CategoryGrid() {
             Seven collections, one singular vision of modest luxury.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-px bg-gold/10 dark:bg-gold/5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">
           {cats.map((cat) => (
             <Link
               key={cat.id}
               href={`/${cat.slug}`}
-              className="group relative flex aspect-[3/4] flex-col justify-end overflow-hidden bg-ivory dark:bg-[#0F0F0F]"
+              className="group relative flex aspect-[3/4] flex-col justify-end overflow-hidden rounded-sm bg-ivory dark:bg-[#0F0F0F] shadow-sm ring-1 ring-gold/10 transition-all duration-500 hover:shadow-xl hover:ring-gold/40"
             >
               {cat.image && (
                 <SafeImage
@@ -83,16 +83,21 @@ export function CategoryGrid() {
                   alt={cat.name}
                   fill
                   priority={cats.indexOf(cat) < 4}
-                  className={`object-cover transition-all duration-700 group-hover:scale-105 ${imageLoaded[cat.id] ? 'opacity-100' : 'opacity-0'}`}
-                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 14vw"
+                  className={`object-cover transition-all duration-700 group-hover:scale-110 ${imageLoaded[cat.id] ? 'opacity-100' : 'opacity-0'}`}
+                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   onLoad={() => setImageLoaded(prev => ({ ...prev, [cat.id]: true }))}
                 />
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-              <div className="relative z-10 p-5">
-                <h3 className="font-serif text-lg font-medium text-ivory">{cat.name}</h3>
-                <span className="text-[10px] tracking-[0.2em] uppercase text-ivory/60 font-body">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent transition-opacity duration-500 group-hover:from-black/80" />
+              <div className="relative z-10 p-5 lg:p-6">
+                <h3 className="font-serif text-lg font-medium text-ivory transition-transform duration-500 group-hover:-translate-y-1">
+                  {cat.name}
+                </h3>
+                <span className="mt-1 flex items-center gap-2 text-[10px] tracking-[0.2em] uppercase text-ivory/60 font-body transition-transform duration-500 group-hover:-translate-y-1">
                   {counts[cat.name] || "..."} styles
+                  <span className="inline-block translate-x-0 opacity-0 transition-all duration-500 group-hover:translate-x-1 group-hover:opacity-100 text-gold-light">
+                    →
+                  </span>
                 </span>
               </div>
             </Link>
