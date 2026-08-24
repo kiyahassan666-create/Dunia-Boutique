@@ -66,7 +66,8 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Link href="/bag" className="hidden md:flex items-center gap-1 text-warm-gray hover:text-charcoal dark:text-[#A09890] dark:hover:text-[#E8E0D8] transition-colors" aria-label="Bag">
+          {/* Cart icon: now visible on all screen sizes, including mobile top bar */}
+          <Link href="/bag" className="flex items-center gap-1 text-warm-gray hover:text-charcoal dark:text-[#A09890] dark:hover:text-[#E8E0D8] transition-colors" aria-label="Bag">
             <ShoppingBag size={17} />
             {cartCount > 0 && <span className="text-[9px] bg-gold text-charcoal rounded-full w-4 h-4 flex items-center justify-center font-body font-medium">{cartCount > 9 ? "9+" : cartCount}</span>}
           </Link>
@@ -99,7 +100,6 @@ export function Navbar() {
               </Link>
             ))}
             <div className="flex gap-5 pt-4 border-t border-gold/10">
-              <Link href="/bag" className="text-[10px] tracking-[0.2em] uppercase text-warm-gray hover:text-charcoal dark:hover:text-[#E8E0D8] font-body" onClick={() => setMobileOpen(false)}>Bag{cartCount > 0 ? ` (${cartCount})` : ""}</Link>
               {user ? (
                 <>
                   <Link href="/wishlist" className="text-[10px] tracking-[0.2em] uppercase text-warm-gray hover:text-charcoal dark:hover:text-[#E8E0D8] font-body" onClick={() => setMobileOpen(false)}>Wishlist</Link>
