@@ -29,6 +29,10 @@ export default function AdminMedia() {
     setEntries(all);
   };
 
+  // Adds a unique query param so browsers never mistake a new upload for a cached old one,
+  // even when Firebase Storage returns the same base URL for an overwritten file.
+  const cacheBust = (url: string) => url + (url.includes("?") ? "&" : "?") + "v=" + Date.now();
+
   const handleUpload = async (key: string, file: File) => {
     setUploading(key);
     try {
@@ -37,7 +41,7 @@ export default function AdminMedia() {
         await deleteImageFromStorage(existing.currentUrl);
       }
       const url = await uploadImage(file, "site");
-      await updateImage(key, url);
+      await updateImage(key, cacheBust(url));
       await refresh();
     } catch (err) {
       console.error("Media upload failed:", err);
@@ -82,7 +86,7 @@ export default function AdminMedia() {
         await deleteImageFromStorage(existing.currentUrl);
       }
       const url = await uploadImage(file, "site");
-      await updateImage(key, url);
+      await updateImage(key, cacheBust(url));
       await refresh();
     } catch (err) {
       console.error("Media drop upload failed:", err);
