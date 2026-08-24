@@ -30,7 +30,8 @@ export default function AbayasPage() {
 
   return (
     <>
-      <section className="relative h-[55vh] min-h-[420px] w-full">
+      {/* Hero: shorter on mobile so it doesn't dominate the screen, taller on desktop */}
+      <section className="relative h-[32vh] min-h-[260px] sm:h-[42vh] sm:min-h-[340px] lg:h-[55vh] lg:min-h-[420px] w-full">
         {heroImage && (
           <SafeImage
             src={heroImage}
@@ -44,15 +45,16 @@ export default function AbayasPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/50" />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center max-w-2xl px-6">
-            <span className="inline-block text-[10px] tracking-[0.35em] uppercase text-gold-light font-body mb-5">
+            <span className="hidden sm:inline-block text-[10px] tracking-[0.35em] uppercase text-gold-light font-body mb-5">
               Maison Dunia — Atelier 2026
             </span>
-            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-medium tracking-tight text-ivory leading-[1.08]">
+            <h1 className="font-serif text-2xl sm:text-4xl lg:text-6xl xl:text-7xl font-medium tracking-tight text-ivory leading-[1.08]">
               The Abaya
               <br />
               <span className="italic font-normal text-gold-light">Collection</span>
             </h1>
-            <p className="mt-6 max-w-lg mx-auto font-serif text-base leading-relaxed text-ivory/70 italic">
+            {/* Subtext hidden on mobile to keep hero compact; shows from tablet up */}
+            <p className="hidden sm:block mt-6 max-w-lg mx-auto font-serif text-base leading-relaxed text-ivory/70 italic">
               Twenty-four silhouettes, one singular vision — the art of modest luxury, reimagined for the modern woman.
             </p>
           </div>
@@ -60,13 +62,13 @@ export default function AbayasPage() {
       </section>
 
       <section className="bg-ivory dark:bg-[#0A0A0A]">
-        <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16 py-16 lg:py-28">
-          <div className="mb-14 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16 py-10 sm:py-16 lg:py-28">
+          <div className="mb-8 sm:mb-14 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <span className="inline-block text-[10px] tracking-[0.35em] uppercase text-gold-dark font-medium font-body mb-3">
                 Signature Silhouettes
               </span>
-              <h2 className="font-serif text-3xl sm:text-4xl font-medium text-charcoal dark:text-[#E8E0D8] leading-tight">
+              <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-medium text-charcoal dark:text-[#E8E0D8] leading-tight">
                 L&rsquo;Art de l&rsquo;Abaya
               </h2>
             </div>
@@ -74,7 +76,8 @@ export default function AbayasPage() {
               Each piece is crafted in our atelier with a reverence for tradition and an eye toward the future.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-gold/10 dark:bg-gold/5">
+          {/* 2 columns on phones, 2 on small tablets, 3 from desktop up. Visible gap between cards instead of a hairline. */}
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
             {products.map((product, i) => (
               <ProductCard key={product.id} product={product} priority={i < 3} />
             ))}
