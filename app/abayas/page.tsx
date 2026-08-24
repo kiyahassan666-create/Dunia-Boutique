@@ -66,14 +66,14 @@ export default function AbayasPage() {
           <div className="mb-8 sm:mb-14 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <span className="inline-block text-[10px] tracking-[0.35em] uppercase text-gold-dark font-medium font-body mb-3">
-                Signature Silhouettes
+                Welcome
               </span>
               <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-medium text-charcoal dark:text-[#E8E0D8] leading-tight">
-                L&rsquo;Art de l&rsquo;Abaya
+                Abaya Products
               </h2>
             </div>
             <p className="font-serif text-base text-warm-gray dark:text-[#A09890] max-w-sm leading-relaxed italic">
-              Each piece is crafted in our atelier with a reverence for tradition and an eye toward the future.
+              Explore the full range of abayas we offer below, each crafted with care.
             </p>
           </div>
           {/* 2 columns on phones, 2 on small tablets, 3 from desktop up. Visible gap between cards instead of a hairline. */}
