@@ -72,9 +72,6 @@ export default function AbayasPage() {
                 Abaya Products
               </h2>
             </div>
-            <p className="font-serif text-base text-warm-gray dark:text-[#A09890] max-w-sm leading-relaxed italic">
-              Explore the full range of abayas we offer below, each crafted with care.
-            </p>
           </div>
           {/* 2 columns on phones, 2 on small tablets, 3 from desktop up. Visible gap between cards instead of a hairline. */}
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
