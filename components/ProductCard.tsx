@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { SafeImage } from "@/components/SafeImage";
@@ -7,16 +6,13 @@ import { Product } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { getWishlistItems, saveWishlistItems } from "@/lib/firebaseSync";
 import { formatKES } from "@/lib/currency";
-
 interface ProductCardProps {
   product: Product;
   priority?: boolean;
 }
-
 export default function ProductCard({ product, priority }: ProductCardProps) {
   const { user, triggerGuestModal } = useAuth();
   const [inWishlist, setInWishlist] = useState(false);
-
   useEffect(() => {
     if (!user?.uid) return;
     (async () => {
@@ -24,7 +20,6 @@ export default function ProductCard({ product, priority }: ProductCardProps) {
       setInWishlist(wish.some((p: Product) => p.id === product.id));
     })();
   }, [user?.uid, product.id]);
-
   const toggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -40,7 +35,6 @@ export default function ProductCard({ product, priority }: ProductCardProps) {
     }
     await saveWishlistItems(user.uid!, updated);
   };
-
   return (
     <Link href={`/product/${product.id}`} className="group relative bg-ivory dark:bg-[#0F0F0F] block">
       <div className="relative aspect-[3/4] overflow-hidden">
@@ -71,20 +65,16 @@ export default function ProductCard({ product, priority }: ProductCardProps) {
           </span>
         </div>
       </div>
-      <div className="px-6 pt-6 pb-8">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <span className="block text-[10px] tracking-[0.25em] uppercase text-warm-gray dark:text-[#A09890] font-body">
-              {product.category}
-            </span>
-            <h3 className="mt-1 font-serif text-lg font-medium text-charcoal dark:text-[#E8E0D8] leading-snug">
-              {product.name}
-            </h3>
-          </div>
-          <span className="font-serif text-xl font-medium text-gold-dark whitespace-nowrap">
-            {formatKES(product.price)}
-          </span>
-        </div>
+      <div className="px-4 pt-4 pb-6 sm:px-6 sm:pt-6 sm:pb-8">
+        <span className="block text-[9px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.25em] uppercase text-warm-gray dark:text-[#A09890] font-body">
+          {product.category}
+        </span>
+        <h3 className="mt-1 font-serif text-sm sm:text-lg font-medium text-charcoal dark:text-[#E8E0D8] leading-snug line-clamp-2">
+          {product.name}
+        </h3>
+        <span className="mt-1.5 sm:mt-2 block font-serif text-base sm:text-xl font-medium text-gold-dark">
+          {formatKES(product.price)}
+        </span>
       </div>
     </Link>
   );
