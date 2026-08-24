@@ -21,6 +21,13 @@ const CAT_KEYS: Record<string, { key: string; slug: string }> = {
   "Shoes": { key: "cat_shoes", slug: "shoes" },
 };
 
+// Roman numerals: the seven collections, numbered — echoes "Seven collections, one singular vision"
+const NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII"];
+
+// Named grid-template-areas for the desktop lookbook layout (only applies cleanly when there are exactly 7 categories)
+const BENTO_AREAS = ["abayas", "vip", "wedding", "perfumes", "bags", "jewelry", "shoes"];
+const BENTO_TEMPLATE = `"abayas abayas vip wedding" "abayas abayas perfumes bags" "jewelry shoes shoes bags"`;
+
 export function CategoryGrid() {
   const [cats, setCats] = useState<CatData[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -56,10 +63,75 @@ export function CategoryGrid() {
     })();
   }, []);
 
+  const isBentoReady = cats.length === 7;
+
+  const renderTile = (cat: CatData, index: number, variant: "bento" | "rail") => {
+    const isHero = variant === "bento" && index === 0;
+    return (
+      <Link
+        key={cat.id}
+        href={`/${cat.slug}`}
+        style={variant === "bento" ? { gridArea: BENTO_AREAS[index] } : undefined}
+        className={`group relative flex flex-col justify-end overflow-hidden bg-charcoal ${
+          variant === "rail"
+            ? "aspect-[3/4] w-[70vw] max-w-[280px] shrink-0 snap-start"
+            : "h-full w-full"
+        }`}
+      >
+        {cat.image && (
+          <SafeImage
+            src={cat.image}
+            alt={cat.name}
+            fill
+            priority={index < 4}
+            className={`object-cover transition-all duration-[1200ms] ease-out motion-safe:group-hover:scale-[1.08] ${
+              imageLoaded[cat.id] ? "opacity-100" : "opacity-0"
+            }`}
+            sizes={variant === "rail" ? "70vw" : "(max-width: 1024px) 50vw, 28vw"}
+            onLoad={() => setImageLoaded((prev) => ({ ...prev, [cat.id]: true }))}
+          />
+        )}
+
+        {/* Warm gradient wash — deepens on hover for contrast with text */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/5 transition-all duration-700 group-hover:from-black/85" />
+
+        {/* Signature element: large translucent Roman numeral, brightens to gold on hover */}
+        <span
+          className={`pointer-events-none absolute font-serif italic text-ivory/15 transition-colors duration-700 group-hover:text-gold/40 ${
+            isHero
+              ? "-top-2 right-3 text-[7rem] leading-none sm:text-[9rem]"
+              : "-top-1 right-2 text-5xl leading-none sm:text-6xl"
+          }`}
+        >
+          {NUMERALS[index] || index + 1}
+        </span>
+
+        <div className={`relative z-10 ${isHero ? "p-6 lg:p-8" : "p-4 lg:p-5"}`}>
+          <h3
+            className={`font-serif font-medium text-ivory ${
+              isHero ? "text-2xl lg:text-3xl" : "text-base lg:text-lg"
+            }`}
+          >
+            {cat.name}
+          </h3>
+          <span
+            className={`mt-1.5 block text-[10px] tracking-[0.2em] uppercase text-ivory/55 font-body ${
+              isHero ? "" : "text-[9px]"
+            }`}
+          >
+            {counts[cat.name] || "..."} styles
+          </span>
+          {/* Underline draws in on hover — quiet confirmation this tile is interactive */}
+          <span className="mt-2 block h-px w-8 origin-left scale-x-0 bg-gold transition-transform duration-500 motion-safe:group-hover:scale-x-100" />
+        </div>
+      </Link>
+    );
+  };
+
   return (
     <section id="categories" className="px-6 py-20 lg:px-12 lg:py-28">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-14 text-center">
+        <div className="mb-12 text-center lg:mb-16">
           <span className="inline-block text-[10px] tracking-[0.35em] uppercase text-gold-dark font-body font-medium mb-3">
             Collections
           </span>
@@ -70,38 +142,28 @@ export function CategoryGrid() {
             Seven collections, one singular vision of modest luxury.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 lg:gap-6">
-          {cats.map((cat) => (
-            <Link
-              key={cat.id}
-              href={`/${cat.slug}`}
-              className="group relative flex aspect-[3/4] flex-col justify-end overflow-hidden rounded-sm bg-ivory dark:bg-[#0F0F0F] shadow-sm ring-1 ring-gold/10 transition-all duration-500 hover:shadow-xl hover:ring-gold/40"
-            >
-              {cat.image && (
-                <SafeImage
-                  src={cat.image}
-                  alt={cat.name}
-                  fill
-                  priority={cats.indexOf(cat) < 4}
-                  className={`object-cover transition-all duration-700 group-hover:scale-110 ${imageLoaded[cat.id] ? 'opacity-100' : 'opacity-0'}`}
-                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  onLoad={() => setImageLoaded(prev => ({ ...prev, [cat.id]: true }))}
-                />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent transition-opacity duration-500 group-hover:from-black/80" />
-              <div className="relative z-10 p-5 lg:p-6">
-                <h3 className="font-serif text-lg font-medium text-ivory transition-transform duration-500 group-hover:-translate-y-1">
-                  {cat.name}
-                </h3>
-                <span className="mt-1 flex items-center gap-2 text-[10px] tracking-[0.2em] uppercase text-ivory/60 font-body transition-transform duration-500 group-hover:-translate-y-1">
-                  {counts[cat.name] || "..."} styles
-                  <span className="inline-block translate-x-0 opacity-0 transition-all duration-500 group-hover:translate-x-1 group-hover:opacity-100 text-gold-light">
-                    →
-                  </span>
-                </span>
-              </div>
-            </Link>
-          ))}
+
+        {/* Desktop / large tablet: editorial lookbook grid, one hero tile among varying sizes */}
+        <div
+          className="hidden lg:grid lg:h-[720px] lg:grid-cols-4 lg:grid-rows-3 lg:gap-3 xl:h-[780px] xl:gap-4"
+          style={isBentoReady ? { gridTemplateAreas: BENTO_TEMPLATE } : undefined}
+        >
+          {isBentoReady
+            ? cats.map((cat, i) => renderTile(cat, i, "bento"))
+            : // Fallback while categories are loading or count differs from 7: simple even grid, no named areas
+              cats.map((cat, i) => (
+                <div key={cat.id} className="col-span-1 row-span-1">
+                  {renderTile(cat, i, "bento")}
+                </div>
+              ))}
+        </div>
+
+        {/* Mobile / small tablet: swipeable rail, edge fade hints there's more */}
+        <div className="relative lg:hidden">
+          <div className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {cats.map((cat, i) => renderTile(cat, i, "rail"))}
+          </div>
+          <div className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-cream dark:from-[#0A0A0A] to-transparent" />
         </div>
       </div>
     </section>
