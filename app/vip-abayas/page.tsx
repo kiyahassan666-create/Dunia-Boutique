@@ -29,7 +29,7 @@ export default function VipAbayasPage() {
   }, []);
   return (
     <>
-      <section className="relative h-[55vh] min-h-[420px] w-full">
+      <section className="relative h-[32vh] min-h-[260px] sm:h-[42vh] sm:min-h-[340px] lg:h-[55vh] lg:min-h-[420px] w-full">
         {heroImage && (
           <SafeImage
             src={heroImage}
@@ -43,20 +43,20 @@ export default function VipAbayasPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/50" />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center max-w-2xl px-6">
-            <span className="inline-block text-[10px] tracking-[0.35em] uppercase text-gold-light font-body mb-5">
+            <span className="hidden sm:inline-block text-[10px] tracking-[0.35em] uppercase text-gold-light font-body mb-5">
               Maison Dunia — Haute Couture
             </span>
-            <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-medium tracking-tight text-ivory leading-[1.08]">
+            <h1 className="font-serif text-2xl sm:text-5xl lg:text-6xl xl:text-7xl font-medium tracking-tight text-ivory leading-[1.08]">
               VIP Abayas
             </h1>
-            <div className="mx-auto mt-6 h-px w-16 bg-gold/50" />
-            <p className="mt-6 max-w-lg mx-auto font-serif text-base leading-relaxed text-ivory/70 italic">
+            <div className="hidden sm:block mx-auto mt-6 h-px w-16 bg-gold/50" />
+            <p className="hidden sm:block mt-6 max-w-lg mx-auto font-serif text-base leading-relaxed text-ivory/70 italic">
               Where opulence meets modesty. Our VIP collection features
               hand-embroidered details, precious stones, and the finest silks.
             </p>
           </div>
         </div>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 text-[9px] tracking-[0.3em] uppercase text-ivory/40 font-body">
+        <div className="hidden sm:flex absolute bottom-8 left-1/2 -translate-x-1/2 items-center gap-3 text-[9px] tracking-[0.3em] uppercase text-ivory/40 font-body">
           <span className="h-px w-16 bg-ivory/20" />
           <span>Scroll</span>
           <span className="h-px w-16 bg-ivory/20" />
@@ -64,22 +64,17 @@ export default function VipAbayasPage() {
       </section>
 
       <section className="bg-ivory dark:bg-[#0A0A0A]">
-        <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16 py-16 lg:py-28">
-          <div className="mb-14 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-            <div>
-              <span className="inline-block text-[10px] tracking-[0.35em] uppercase text-gold-dark font-medium font-body mb-3">
-                Haute Collection
-              </span>
-              <h2 className="font-serif text-3xl sm:text-4xl font-medium text-charcoal dark:text-[#E8E0D8] leading-tight">
-                L&rsquo;Excellence de l&rsquo;Abaya
-              </h2>
-            </div>
-            <p className="font-serif text-base text-warm-gray dark:text-[#A09890] max-w-sm leading-relaxed italic">
-              Each VIP piece is individually numbered and comes with a certificate of authenticity.
-            </p>
+        <div className="mx-auto max-w-[1440px] px-4 sm:px-8 lg:px-16 py-10 sm:py-16 lg:py-28">
+          <div className="mb-8 sm:mb-14">
+            <span className="inline-block text-[10px] tracking-[0.35em] uppercase text-gold-dark font-medium font-body mb-3">
+              Welcome
+            </span>
+            <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-medium text-charcoal dark:text-[#E8E0D8] leading-tight">
+              VIP Abayas Products
+            </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-gold/10 dark:bg-gold/5">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
             {products.map((product, i) => (
               <ProductCard key={product.id} product={product} priority={i < 3} />
             ))}
